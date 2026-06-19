@@ -7,7 +7,7 @@ import logger from "./utils/logger.js";
 
 dotenv.config();
 
-// ✅ Register process handlers first — before any async code runs
+// Register process handlers first — before any async code runs
 process.on("uncaughtException", (error) => {
   logger.error(`Uncaught Exception: ${error.message}`);
   process.exit(1);
@@ -44,7 +44,7 @@ app.use("*", (req, res) => {
   });
 });
 
-// ✅ Global error handler — must be 4 args for Express to treat it as error middleware
+// Global error handler 
 app.use((err, req, res, next) => {
   logger.error(`Unhandled error: ${err.message}`);
   res.status(err.status || 500).json({
