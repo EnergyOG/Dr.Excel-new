@@ -127,3 +127,35 @@ export const deleteRequest = async (req, res) => {
     });
   }
 };
+
+// Update Status
+export const updateRequestStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const request = await Request.findByIdAndUpdate(
+      req.params.id,
+      { requestStatus: status },
+      { new: true, runValidators: true }
+    );
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      request,
+    });
+  } catch (error) {
+    logger.error(`updateRequestStatus: ${error.message}`);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
