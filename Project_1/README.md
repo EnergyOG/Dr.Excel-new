@@ -1,4 +1,4 @@
-[Backend banner](/public/images/backend%20banner.png)
+[Backend banner](/public/images/backend-banner.png)
 # Request Management API
 
 A simple REST API built with Node.js, Express, and MongoDB for handling user requests and inquiries.
