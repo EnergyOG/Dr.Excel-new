@@ -1,5 +1,10 @@
+import mongoose from "mongoose";
 import Request from "../models/requestModel.js";
 import logger from "../utils/logger.js";
+import { getCache, setCache, invalidateRequestCaches } from "../services/cacheService.js";
+
+// Helper — avoids CastError 500s on bad ObjectId strings
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // Create Request
 export const createRequest = async (req, res) => {
@@ -8,55 +13,39 @@ export const createRequest = async (req, res) => {
 
     if (!requestName || !requestEmail) {
       logger.warn("Create request failed: Missing required fields");
-
-      return res.status(400).json({
-        success: false,
-        message: "Name and email are required",
-      });
+      return res.status(400).json({ success: false, message: "Name and email are required" });
     }
 
-    const request = await Request.create({
-      requestName,
-      requestEmail,
-      requestDetails,
-    });
+    const request = await Request.create({ requestName, requestEmail, requestDetails });
+
+    await setCache(`request:${request._id}`, request);
+    await invalidateRequestCaches();
 
     logger.info(`Request created successfully: ${request._id}`);
-
-    res.status(201).json({
-      success: true,
-      message: "Request submitted successfully",
-      request,
-    });
+    return res.status(201).json({ success: true, message: "Request submitted successfully", request });
   } catch (error) {
     logger.error(`createRequest: ${error.message}`);
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
 // Get All Requests
 export const getRequests = async (req, res) => {
   try {
+    const cachedRequests = await getCache("requests");
+    if (cachedRequests) {
+      logger.info("Requests served from Redis cache");
+      return res.status(200).json({ success: true, source: "cache", count: cachedRequests.length, requests: cachedRequests });
+    }
+
     const requests = await Request.find().sort({ createdAt: -1 });
+    await setCache("requests", requests);
 
-    logger.info(`Fetched ${requests.length} requests`);
-
-    res.status(200).json({
-      success: true,
-      count: requests.length,
-      requests,
-    });
+    logger.info(`Fetched ${requests.length} requests from MongoDB`);
+    return res.status(200).json({ success: true, source: "database", count: requests.length, requests });
   } catch (error) {
     logger.error(`getRequests: ${error.message}`);
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -65,32 +54,31 @@ export const getRequest = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const request = await Request.findById(id);
-
-    if (!request) {
-      logger.warn(`Request not found: ${id}`);
-
-      return res.status(404).json({
-        success: false,
-        message: "Request not found",
-      });
+    // ✅ Guard against invalid ObjectId before hitting Mongo
+    if (!isValidId(id)) {
+      logger.warn(`Invalid request ID: ${id}`);
+      return res.status(400).json({ success: false, message: "Invalid request ID" });
     }
 
-    logger.info(`Fetched request: ${id}`);
+    const cacheKey = `request:${id}`;
+    const cachedRequest = await getCache(cacheKey);
+    if (cachedRequest) {
+      logger.info(`Request ${id} served from Redis cache`);
+      return res.status(200).json({ success: true, source: "cache", request: cachedRequest });
+    }
 
-    res.status(200).json({
-      success: true,
-      request,
-    });
+    const request = await Request.findById(id);
+    if (!request) {
+      logger.warn(`Request not found: ${id}`);
+      return res.status(404).json({ success: false, message: "Request not found" });
+    }
+
+    await setCache(cacheKey, request);
+    logger.info(`Request ${id} fetched from MongoDB`);
+    return res.status(200).json({ success: true, source: "database", request });
   } catch (error) {
-    logger.error(
-      `getRequest (${req.params.id}): ${error.message}`
-    );
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    logger.error(`getRequest (${req.params.id}): ${error.message}`);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -99,63 +87,56 @@ export const deleteRequest = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const request = await Request.findByIdAndDelete(id);
-
-    if (!request) {
-      logger.warn(`Delete failed. Request not found: ${id}`);
-
-      return res.status(404).json({
-        success: false,
-        message: "Request not found",
-      });
+    if (!isValidId(id)) {
+      logger.warn(`Invalid request ID: ${id}`);
+      return res.status(400).json({ success: false, message: "Invalid request ID" });
     }
 
+    const request = await Request.findByIdAndDelete(id);
+    if (!request) {
+      logger.warn(`Delete failed. Request not found: ${id}`);
+      return res.status(404).json({ success: false, message: "Request not found" });
+    }
+
+    await invalidateRequestCaches(id);
+
     logger.info(`Deleted request: ${id}`);
-
-    res.status(200).json({
-      success: true,
-      message: "Request deleted successfully",
-    });
+    return res.status(200).json({ success: true, message: "Request deleted successfully" });
   } catch (error) {
-    logger.error(
-      `deleteRequest (${req.params.id}): ${error.message}`
-    );
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    logger.error(`deleteRequest (${req.params.id}): ${error.message}`);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
-// Update Status
+// Update Request Status
 export const updateRequestStatus = async (req, res) => {
   try {
+    const { id } = req.params;
     const { status } = req.body;
 
+    if (!isValidId(id)) {
+      logger.warn(`Invalid request ID: ${id}`);
+      return res.status(400).json({ success: false, message: "Invalid request ID" });
+    }
+
     const request = await Request.findByIdAndUpdate(
-      req.params.id,
+      id,
       { requestStatus: status },
       { new: true, runValidators: true }
     );
 
     if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Request not found",
-      });
+      logger.warn(`Update failed. Request not found: ${id}`);
+      return res.status(404).json({ success: false, message: "Request not found" });
     }
 
-    res.status(200).json({
-      success: true,
-      request,
-    });
+    await invalidateRequestCaches(id);
+    await setCache(`request:${id}`, request);
+
+    logger.info(`Request ${id} status updated to ${status}`);
+    return res.status(200).json({ success: true, message: "Request status updated successfully", request });
   } catch (error) {
     logger.error(`updateRequestStatus: ${error.message}`);
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
