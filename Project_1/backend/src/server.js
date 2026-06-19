@@ -7,6 +7,17 @@ import logger from "./utils/logger.js";
 
 dotenv.config();
 
+// ✅ Register process handlers first — before any async code runs
+process.on("uncaughtException", (error) => {
+  logger.error(`Uncaught Exception: ${error.message}`);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (error) => {
+  logger.error(`Unhandled Rejection: ${error.message}`);
+  process.exit(1);
+});
+
 const app = express();
 
 // Middleware
@@ -27,10 +38,18 @@ app.get("/", (req, res) => {
 // 404 Handler
 app.use("*", (req, res) => {
   logger.warn(`Route not found: ${req.originalUrl}`);
-
   res.status(404).json({
     success: false,
     message: "Route not found",
+  });
+});
+
+// ✅ Global error handler — must be 4 args for Express to treat it as error middleware
+app.use((err, req, res, next) => {
+  logger.error(`Unhandled error: ${err.message}`);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal server error",
   });
 });
 
@@ -51,13 +70,3 @@ const startServer = async () => {
 };
 
 startServer();
-
-process.on("uncaughtException", (error) => {
-  logger.error(`Uncaught Exception: ${error.message}`);
-  process.exit(1);
-});
-
-process.on("unhandledRejection", (error) => {
-  logger.error(`Unhandled Rejection: ${error.message}`);
-  process.exit(1);
-});
