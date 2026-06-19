@@ -1,13 +1,13 @@
 import express from "express";
 import dotenv from "dotenv";
-import connectDB from "./config/db.js";
+import connectDB from "./src/config/database.js";
 import { connectRedis } from "./src/config/redis.js";
-import requestRoutes from "./routes/requestRoutes.js";
+import requestRoutes from "./src/routes/route.request.js";
 import logger from "./src/utils/logger.js";
 
 dotenv.config();
 
-// Register process handlers first — before any async code runs
+// Register process handlers first before any async code runs
 process.on("uncaughtException", (error) => {
   logger.error(`Uncaught Exception: ${error.message}`);
   process.exit(1);
@@ -44,7 +44,7 @@ app.use("*", (req, res) => {
   });
 });
 
-// Global error handler 
+// Global error handler
 app.use((err, req, res, next) => {
   logger.error(`Unhandled error: ${err.message}`);
   res.status(err.status || 500).json({
