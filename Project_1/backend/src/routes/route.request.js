@@ -12,5 +12,6 @@ router.post("/", createRequest);
 router.get("/", getRequests);
 router.get("/:id", getRequest);
 router.delete("/:id", deleteRequest);
+router.patch("/:id/status", updateRequestStatus);
 
 export default router;
