@@ -1,9 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
-import { connectRedis } from "./config/redis.js";
+import { connectRedis } from "./src/config/redis.js";
 import requestRoutes from "./routes/requestRoutes.js";
-import logger from "./utils/logger.js";
+import logger from "./src/utils/logger.js";
 
 dotenv.config();
 
