@@ -54,7 +54,7 @@ export const getRequest = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // ✅ Guard against invalid ObjectId before hitting Mongo
+    // Guard against invalid ObjectId before hitting Mongo
     if (!isValidId(id)) {
       logger.warn(`Invalid request ID: ${id}`);
       return res.status(400).json({ success: false, message: "Invalid request ID" });
