@@ -1,3 +1,4 @@
+[Backend banner](/public/images/backend%20banner.png)
 # Request Management API
 
 A simple REST API built with Node.js, Express, and MongoDB for handling user requests and inquiries.
@@ -26,22 +27,28 @@ A simple REST API built with Node.js, Express, and MongoDB for handling user req
 ## Project Structure
 
 ```text
-project-root/
-│
-├── controllers/
-│   └── requestController.js
-│
-├── models/
-│   └── requestModel.js
-│
-├── routes/
-│   └── requestRoutes.js
+Project_1/
 │
 ├── src/
+|    ├── config/
+│    |  ├──monogodb/
+|    |  └──redis/
+|    | 
+|    ├── controllers/
+│    |  └── request.controller.js
+|    |
+|    ├── model/
+│    |  └── request.model.js
+|    | 
+|    ├── routes/
+│    |  └── requestController.js
+|    |       
+|    └── server.js
 │
-├── .env
 ├── .gitignore
+├── Dockerfile
 ├── package.json
+├── package-lock.json
 └── README.md
 ```
 
@@ -78,9 +85,9 @@ project-root/
 
 ```json
 {
-  "requestName": "John Doe",
-  "requestEmail": "john@example.com",
-  "requestDetails": "I need assistance with my account."
+  "requestName": "Dennis Peprah",
+  "requestEmail": "dennis@example.com",
+  "requestDetails": "I need assistance with creating project cost estimation."
 }
 ```
 
