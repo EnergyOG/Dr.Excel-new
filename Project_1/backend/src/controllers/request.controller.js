@@ -3,16 +3,34 @@ import Request from "../models/requestModel.js";
 // Create
 export const createRequest = async (req, res) => {
   try {
-    const request = await Request.create(req.body);
+    const { requestName, requestEmail, requestDetails } = req.body;
+
+    // Validation
+    if (!requestName || !requestEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and email are required",
+      });
+    }
+
+    const request = await Request.create({
+      requestName,
+      requestEmail,
+      requestDetails,
+    });
 
     res.status(201).json({
       success: true,
+      message: "Request submitted successfully",
       request,
     });
   } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Server error",
+      error: error.message,
     });
   }
 };
