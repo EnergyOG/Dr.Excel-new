@@ -16,6 +16,11 @@ const requestSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    requestStatus: {
+      type: String,
+      enum: ["backlog", "pending", "done"],
+      default: "backlog",
+    },
   },
   {
     timestamps: true,
