@@ -32,7 +32,6 @@ export const invalidateRequestCaches = async (requestId) => {
   try {
     const keys = ["requests"];
     if (requestId) keys.push(`request:${requestId}`);
-    // Spread keys as separate args — more reliable across ioredis & node-redis versions
     await redisClient.del(...keys);
   } catch (err) {
     console.error(`invalidateRequestCaches:`, err.message);
