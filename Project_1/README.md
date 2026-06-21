@@ -1,103 +1,142 @@
 ![Backend banner](public/images/backend-banner.png)
-# Request Management API
+# Request API
 
-A simple REST API built with Node.js, Express, and MongoDB for handling user requests and inquiries.
+A lightweight Express + MongoDB backend for managing user-submitted requests, with Redis caching for fast reads.
 
 ## Features
 
-* Create new requests
-* Retrieve all requests
-* Retrieve a single request by ID
-* Delete requests
-* MongoDB integration using Mongoose
-* Request validation
-* Automatic timestamps (`createdAt` and `updatedAt`)
-
----
+- RESTful CRUD API for requests
+- Redis caching with automatic invalidation on writes
+- MongoDB persistence via Mongoose
+- Structured logging with Winston
+- Centralized error handling and 404 fallback
+- Input validation (required fields, MongoDB ObjectId format, email format)
 
 ## Tech Stack
 
-* Node.js
-* Express.js
-* MongoDB
-* Mongoose
-
----
+| Layer       | Technology       |
+|-------------|------------------|
+| Runtime     | Node.js (ESM)    |
+| Framework   | Express 4        |
+| Database    | MongoDB (Mongoose) |
+| Cache       | Redis            |
+| Logging     | Winston          |
 
 ## Project Structure
 
-```text
-Project_1/
-│
-├── src/
-|    ├── config/
-│    |  ├──monogodb/
-|    |  └──redis/
-|    | 
-|    ├── controllers/
-│    |  └── request.controller.js
-|    |
-|    ├── model/
-│    |  └── request.model.js
-|    | 
-|    ├── routes/
-│    |  └── requestController.js
-|    |       
-|    └── server.js
-│
-├── .gitignore
-├── Dockerfile
+```
+.
+├── server.js                          # App entry point
 ├── package.json
-├── package-lock.json
-└── README.md
+├── .env.example
+└── src/
+    ├── config/
+    │   ├── database.js                # MongoDB connection
+    │   └── redis.js                   # Redis client + connection
+    ├── controllers/
+    │   └── request.controller.js      # Route handler logic
+    ├── model/
+    │   └── request.model.js           # Mongoose schema
+    ├── routes/
+    │   └── route.request.js           # /api/requests routes
+    ├── services/
+    │   └── cache.service.js           # Redis get/set/invalidate helpers
+    └── utils/
+        └── logger.js                  # Winston logger
 ```
+
+## Prerequisites
+
+- Node.js 18+
+- A running MongoDB instance (local or hosted, e.g. MongoDB Atlas)
+- A running Redis instance (local or hosted, e.g. Redis Cloud, Upstash)
+
+## Getting Started
+
+1. **Clone and install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+2. **Configure environment variables**
+
+   Copy the example file and fill in your own values:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   | Variable      | Description                              | Example                                  |
+   |---------------|-------------------------------------------|-------------------------------------------|
+   | `PORT`        | Port the server listens on                | `5000`                                    |
+   | `NODE_ENV`    | Environment mode                          | `development` or `production`             |
+   | `MONGODB_URI` | MongoDB connection string                 | `mongodb://localhost:27017/request-api`   |
+   | `REDIS_URL`   | Redis connection string                   | `redis://localhost:6379`                  |
+
+3. **Run the server**
+
+   ```bash
+   npm run dev    # with nodemon, auto-restarts on file changes
+   # or
+   npm start      # plain node, for production
+   ```
+
+   On success you should see:
+
+   ```
+   MongoDB connected successfully
+   Redis connected successfully
+   Server running on port 5000
+   ```
+
+## API Reference
+
+Base URL: `/api/requests`
+
+### Health Check
+
+```
+GET /
+```
+
+Returns `200` if the API is running.
 
 ---
 
-## Request Schema
+### Create a Request
 
-```js
-{
-  requestName: String,
-  requestEmail: String,
-  requestDetails: String,
-  createdAt: Date,
-  updatedAt: Date
-}
+```
+POST /api/requests
 ```
 
-### Validation
-
-* `requestName` is required
-* `requestEmail` is required
-* Email format is validated
-* `requestDetails` is optional
-
----
-
-## API Endpoints
-
-### Create Request
-
-**POST** `/api/requests`
-
-#### Request Body
+**Body**
 
 ```json
 {
-  "requestName": "Dennis Peprah",
-  "requestEmail": "dennis@example.com",
-  "requestDetails": "I need assistance with creating project cost estimation."
+  "requestName": "Jane Doe",
+  "requestEmail": "jane@example.com",
+  "requestDetails": "Optional details about the request"
 }
 ```
 
-#### Response
+`requestName` and `requestEmail` are required. `requestEmail` must be a valid email format.
+
+**Response — `201 Created`**
 
 ```json
 {
   "success": true,
   "message": "Request submitted successfully",
-  "request": {}
+  "request": {
+    "_id": "665f1c2e8a1b2c3d4e5f6789",
+    "requestName": "Jane Doe",
+    "requestEmail": "jane@example.com",
+    "requestDetails": "Optional details about the request",
+    "requestStatus": "backlog",
+    "createdAt": "2026-06-21T10:00:00.000Z",
+    "updatedAt": "2026-06-21T10:00:00.000Z"
+  }
 }
 ```
 
@@ -105,40 +144,86 @@ Project_1/
 
 ### Get All Requests
 
-**GET** `/api/requests`
+```
+GET /api/requests
+```
 
-#### Response
+Returns all requests, newest first. Served from Redis cache when available.
+
+**Response — `200 OK`**
 
 ```json
 {
   "success": true,
-  "count": 1,
-  "requests": []
+  "source": "cache",
+  "count": 2,
+  "requests": [ /* array of request objects */ ]
 }
 ```
 
 ---
 
-### Get Single Request
+### Get a Single Request
 
-**GET** `/api/requests/:id`
+```
+GET /api/requests/:id
+```
 
-#### Response
+**Response — `200 OK`**
 
 ```json
 {
   "success": true,
-  "request": {}
+  "source": "database",
+  "request": { /* request object */ }
 }
 ```
 
+**Errors**
+- `400` — `id` is not a valid MongoDB ObjectId
+- `404` — no request found with that `id`
+
 ---
 
-### Delete Request
+### Update Request Status
 
-**DELETE** `/api/requests/:id`
+```
+PATCH /api/requests/:id/status
+```
 
-#### Response
+**Body**
+
+```json
+{
+  "status": "pending"
+}
+```
+
+Valid values: `backlog`, `pending`, `done`.
+
+**Response — `200 OK`**
+
+```json
+{
+  "success": true,
+  "message": "Request status updated successfully",
+  "request": { /* updated request object */ }
+}
+```
+
+**Errors**
+- `400` — `id` is not a valid MongoDB ObjectId
+- `404` — no request found with that `id`
+
+---
+
+### Delete a Request
+
+```
+DELETE /api/requests/:id
+```
+
+**Response — `200 OK`**
 
 ```json
 {
@@ -147,77 +232,34 @@ Project_1/
 }
 ```
 
----
-
-## Installation
-
-Clone the repository:
-
-```bash
-git clone <repository-url>
-cd <project-folder>
-```
-
-Install dependencies:
-
-```bash
-npm install
-```
+**Errors**
+- `400` — `id` is not a valid MongoDB ObjectId
+- `404` — no request found with that `id`
 
 ---
 
-## Environment Variables
+## Caching Strategy
 
-Create a `.env` file in the project root:
+- `GET` requests check Redis first (`response.source` indicates `"cache"` or `"database"`).
+- All cached entries expire after **1 hour** (`DEFAULT_TTL` in `cache.service.js`).
+- Any write operation (create, update, delete) invalidates the relevant cache keys (`requests` list and the individual `request:<id>` entry) so stale data is never served.
 
-```env
-PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-```
+## Error Handling
 
----
+- Invalid MongoDB ObjectIds are caught before reaching the database, returning a `400` instead of a raw CastError.
+- All controller logic is wrapped in `try/catch`, logging the error server-side and returning a generic `500 Internal server error` to the client — no internal error details are ever exposed in API responses.
+- A global Express error handler and a catch-all `404` route cover anything that falls outside the defined routes.
+- `uncaughtException` and `unhandledRejection` handlers are registered at startup so the process fails loudly and exits cleanly instead of running in a corrupted state.
 
-## Running the Application
+## Logging
 
-Development mode:
+Logs are written to the console using Winston, with timestamps and color-coded log levels. Log verbosity is environment-aware:
 
-```bash
-npm run dev
-```
+- `development` — `debug` level and above
+- `production` — `info` level and above
 
-Production mode:
+Logs are server-side only and never leaked to API consumers.
 
-```bash
-npm start
-```
+## License
 
----
-
-## Current Progress
-
-### Completed
-
-* Project initialization
-* MongoDB connection setup
-* Request model creation
-* Request controller creation
-* Request routes setup
-* Request validation
-* CRUD endpoints (Create, Read, Delete)
-* Git repository setup
-
-### Planned Improvements
-
-* Update request endpoint
-* Pagination
-* Search and filtering
-* Authentication and authorization
-* Rate limiting
-* API documentation using Swagger
-* Unit and integration testing
-
----
-
-## Author
-
-Backend API built using Express and MongoDB.
+ISC
