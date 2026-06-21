@@ -7,7 +7,7 @@ import logger from "./src/utils/logger.js";
 
 dotenv.config();
 
-// Register process handlers first before any async code runs
+// Register process handlers first — before any async code runs
 process.on("uncaughtException", (error) => {
   logger.error(`Uncaught Exception: ${error.message}`);
   process.exit(1);
