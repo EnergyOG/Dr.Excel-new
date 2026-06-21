@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import Request from "../models/requestModel.js";
+import Request from "../model/request.model.js";
 import logger from "../utils/logger.js";
-import { getCache, setCache, invalidateRequestCaches } from "../services/cacheService.js";
+import { getCache, setCache, invalidateRequestCaches } from "../services/cache.service.js";
 
 // Helper — avoids CastError 500s on bad ObjectId strings
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -54,7 +54,6 @@ export const getRequest = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Guard against invalid ObjectId before hitting Mongo
     if (!isValidId(id)) {
       logger.warn(`Invalid request ID: ${id}`);
       return res.status(400).json({ success: false, message: "Invalid request ID" });
