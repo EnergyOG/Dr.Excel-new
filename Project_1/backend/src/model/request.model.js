@@ -24,7 +24,7 @@ const requestSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 const Request = mongoose.model("Request", requestSchema);
