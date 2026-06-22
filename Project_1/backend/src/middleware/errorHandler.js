@@ -23,7 +23,7 @@ export const errorHandler = (err, req, res, next) => {
   error.statusCode = err.statusCode || 500;
 
   // Log error
-  console.error('Error:', {
+  logger.error('Error:', {
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     url: req.originalUrl,
