@@ -1,16 +1,9 @@
 import { createClient } from "redis";
-import dotenv from "dotenv";
 import logger from "../utils/logger.js";
-
-dotenv.config();
-
-const redisURL = process.env.REDIS_URL;
-const redisPassword = process.env.REDIS_PASSWORD;
 
 const redisClient = createClient({
   url: process.env.REDIS_URL,
-  password: redisPassword,
-  maxRetriesPerRequest: 3,
+  password: process.env.REDIS_PASSWORD || undefined,
   socket: {
     connectTimeout: 5000,
     reconnectStrategy: (retries) => {
@@ -19,8 +12,8 @@ const redisClient = createClient({
         return new Error("Redis reconnection failed");
       }
       return Math.min(retries * 100, 3000);
-    }
-  }
+    },
+  },
 });
 
 redisClient.on("connect", () => {
@@ -41,28 +34,20 @@ const connectRedis = async () => {
 };
 
 export const redisHelpers = {
-  async setEx(key, value, ttl = 3600){
-    try{
+  async setEx(key, value, ttl = 3600) {
+    try {
       await redisClient.setEx(key, ttl, JSON.stringify(value));
-    }catch(err){
-      logger.error("Redis SET error", err);
+    } catch (err) {
+      logger.error(`Redis SET error [${key}]: ${err.message}`);
     }
   },
 
   async get(key) {
-    try{
-      await redisClient.setEx(key, ttl, JSON.stringify(value));
-    }catch(err){
-      logger.error("Redis SET error:", err)
-    }
-  },
-
-  async get(key){
-    try{
+    try {
       const data = await redisClient.get(key);
       return data ? JSON.parse(data) : null;
-    }catch(err){
-      logger.error("Redis GET error:", err);
+    } catch (err) {
+      logger.error(`Redis GET error [${key}]: ${err.message}`);
       return null;
     }
   },
@@ -70,36 +55,37 @@ export const redisHelpers = {
   async del(key) {
     try {
       await redisClient.del(key);
-    } catch (error) {
-      logger.error("Redis DEL error:", error);
+    } catch (err) {
+      logger.error(`Redis DEL error [${key}]: ${err.message}`);
     }
   },
 
   async exists(key) {
     try {
       return await redisClient.exists(key);
-    } catch (error) {
-      logger.error("Redis EXISTS error:", error);
+    } catch (err) {
+      logger.error(`Redis EXISTS error [${key}]: ${err.message}`);
       return false;
     }
   },
 
-   async mset(keyValuePairs) {
+  async mset(keyValuePairs) {
     try {
-      const pairs = Object.entries(keyValuePairs).flat();
       if (!keyValuePairs || typeof keyValuePairs !== "object") {
         throw new Error("Invalid key-value object");
       }
+      const pairs = Object.entries(keyValuePairs).flat();
       await redisClient.mSet(pairs);
-    } catch (error) {
-      logger.error("Redis MSET error:", error);
+    } catch (err) {
+      logger.error(`Redis MSET error: ${err.message}`);
     }
   },
+
   async blacklistToken(token, ttl) {
     try {
       await redisClient.setEx(`blacklist:${token}`, ttl, "true");
     } catch (err) {
-      logger.error("Redis BLACKLIST error:", err);
+      logger.error(`Redis BLACKLIST error: ${err.message}`);
     }
   },
 
@@ -107,7 +93,7 @@ export const redisHelpers = {
     try {
       return await redisClient.exists(`blacklist:${token}`);
     } catch (err) {
-      logger.error("Redis CHECK BLACKLIST error:", err);
+      logger.error(`Redis CHECK BLACKLIST error: ${err.message}`);
       return false;
     }
   },
@@ -115,9 +101,8 @@ export const redisHelpers = {
 
 process.on("SIGINT", async () => {
   await redisClient.quit();
-  logger.log("Redis connection closed");
+  logger.info("Redis connection closed");
   process.exit(0);
 });
-
 
 export { redisClient, connectRedis };
