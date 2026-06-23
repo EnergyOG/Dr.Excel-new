@@ -2,12 +2,14 @@ import rateLimit from "express-rate-limit";
 import RedisStore from "rate-limit-redis";
 import { redisClient } from "../config/redis.js";
 
-export const authLimiter = rateLimit({
-  store: new RedisStore({
+const makeStore = (prefix) =>
+  new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
-    prefix: "auth_limit:",
-  }),
-  windowMs: 15 * 60 * 1000, // 15 mins
+    prefix,
+  });
+
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
   max: 20,
   message: {
     success: false,
@@ -17,14 +19,11 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
+  store: makeStore("auth_limit:"),
 });
 
 export const strictAuthLimiter = rateLimit({
-  store: new RedisStore({
-    sendCommand: (...args) => redisClient.sendCommand(args),
-    prefix: "strict_auth_limit:",
-  }),
-  windowMs: 15 * 60 * 1000, // 15 mins
+  windowMs: 15 * 60 * 1000,
   max: 5,
   message: {
     success: false,
@@ -34,4 +33,5 @@ export const strictAuthLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
+  store: makeStore("strict_auth_limit:"),
 });
