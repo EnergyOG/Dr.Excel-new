@@ -1,8 +1,11 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import connectDB from "./src/config/database.js";
 import { connectRedis } from "./src/config/redis.js";
-import requestRoutes from "./src/routes/route.request.js";
+import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
 import logger from "./src/utils/logger.js";
 
 dotenv.config();
@@ -19,15 +22,21 @@ process.on("unhandledRejection", (error) => {
 });
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Core middleware
+app.use(helmet());
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || `http://localhost:${PORT}`,
+    credentials: true,
+  })
+);
+app.use(cookieParser());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Routes
-app.use("/api/requests", requestRoutes);
-
-// Health Check
+// Health check — registered before startServer so it works even if DB/Redis fail
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -35,30 +44,24 @@ app.get("/", (req, res) => {
   });
 });
 
-// 404 Handler
-app.use((req, res) => {
-  logger.warn(`Route not found: ${req.originalUrl}`);
-  res.status(404).json({
-    success: false,
-    message: "Route not found",
-  });
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  logger.error(`Unhandled error: ${err.message}`);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || "Internal server error",
-  });
-});
-
 const startServer = async () => {
   try {
+    // Connect to DB and Redis FIRST before importing anything that uses them
     await connectDB();
     await connectRedis();
 
-    const PORT = process.env.PORT || 5000;
+    // Dynamically import routes AFTER connections are live
+    // This prevents rateLimiter.js from initialising its RedisStore before Redis is connected
+    const { default: requestRoutes } = await import("./src/routes/request.route.js");
+    const { default: authRoutes } = await import("./src/routes/auth.route.js");
+
+    // Routes
+    app.use("/api/requests", requestRoutes);
+    app.use("/api/auth", authRoutes);
+
+    // Error handlers — must come after routes
+    app.use(notFound);
+    app.use(errorHandler);
 
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
