@@ -44,7 +44,14 @@ const userSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    deleteAt: Date,
+    deleteAt: {
+      type: Date,
+    },
+    // Used to invalidate old tokens after a role change
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
