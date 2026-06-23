@@ -3,7 +3,11 @@ import bcrypt from "bcrypt";
 import User from "../model/auth.model.js";
 import { generateTokenPair, verifyRefreshToken } from "../config/jwt.js";
 import { redisHelpers } from "../config/redis.js";
-import { sendVerificationEmail as sendEmail, sendAccountDeletionEmail } from "../services/email.service.js";
+import {
+  sendVerificationEmail as sendEmail,
+  sendAccountDeletionEmail,
+} from "../services/email.service.js";
+import logger from "../utils/logger.js";
 
 export const register = async (req, res, next) => {
   try {
@@ -73,12 +77,11 @@ export const register = async (req, res, next) => {
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find({ isDeleted: false }).select(
-      "-password"
-    );
+    const users = await User.find({ isDeleted: false }).select("-password");
 
     res.status(200).json({
       success: true,
+      count: users.length,
       data: users,
     });
   } catch (err) {
@@ -156,23 +159,30 @@ export const login = async (req, res, next) => {
 
 export const refreshToken = async (req, res, next) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      return res.status(401).json({ error: "Refresh token missing" });
+    const token = req.cookies.refreshToken;
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Refresh token missing",
+      });
     }
 
-    const decoded = verifyRefreshToken(refreshToken);
-    const storedToken = await redisHelpers.get(
-      `refresh_token:${decoded.userId}`
-    );
+    const decoded = verifyRefreshToken(token);
+    const storedToken = await redisHelpers.get(`refresh_token:${decoded.userId}`);
 
-    if (!storedToken || storedToken !== refreshToken) {
-      return res.status(401).json({ error: "Invalid refresh token" });
+    if (!storedToken || storedToken !== token) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid refresh token",
+      });
     }
 
     const user = await User.findById(decoded.userId);
     if (!user || user.isDeleted) {
-      return res.status(401).json({ error: "User not found" });
+      return res.status(401).json({
+        success: false,
+        error: "User not found",
+      });
     }
 
     const tokens = generateTokenPair({
@@ -195,7 +205,10 @@ export const refreshToken = async (req, res, next) => {
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       })
-      .json({ success: true, data: { accessToken: tokens.accessToken } });
+      .json({
+        success: true,
+        data: { accessToken: tokens.accessToken },
+      });
   } catch (err) {
     next(err);
   }
@@ -221,12 +234,16 @@ export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user.id).select("+password");
-    const comparePassword = await bcrypt.compare(
-      currentPassword,
-      user.password
-    );
 
-    if (!user || !comparePassword) {
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
       return res.status(401).json({
         success: false,
         error: "Current password incorrect",
@@ -253,6 +270,7 @@ export const forgotPassword = async (req, res, next) => {
     const { email } = req.body;
     const user = await User.findOne({ email });
 
+    // Always return 200 to prevent email enumeration
     if (!user) {
       return res.status(200).json({
         success: true,
@@ -261,10 +279,7 @@ export const forgotPassword = async (req, res, next) => {
     }
 
     const rawToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(rawToken)
-      .digest("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
     await redisHelpers.setEx(
       `password_reset_verify:${hashedToken}`,
@@ -276,9 +291,8 @@ export const forgotPassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      ...(process.env.NODE_ENV === "development" && {
-        dev_token: rawToken,
-      }),
+      message: "If that email exists, a link has been sent",
+      ...(process.env.NODE_ENV === "development" && { dev_token: rawToken }),
     });
   } catch (err) {
     next(err);
@@ -290,10 +304,7 @@ export const verifyPasswordResetEmail = async (req, res, next) => {
     const { token } = req.query;
 
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
-    const userId = await redisHelpers.get(
-      `password_reset_verify:${hashedToken}`
-    );
+    const userId = await redisHelpers.get(`password_reset_verify:${hashedToken}`);
 
     if (!userId) {
       return res.status(400).json({
@@ -325,9 +336,7 @@ export const resetPassword = async (req, res, next) => {
   try {
     const { resetSessionId, newPassword } = req.body;
 
-    const userId = await redisHelpers.get(
-      `password_reset_session:${resetSessionId}`
-    );
+    const userId = await redisHelpers.get(`password_reset_session:${resetSessionId}`);
 
     if (!userId) {
       return res.status(400).json({
@@ -355,6 +364,7 @@ export const resetPassword = async (req, res, next) => {
 export const sendVerificationEmail = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
+
     if (!user || user.isEmailVerified) {
       return res.status(400).json({
         success: false,
@@ -363,15 +373,12 @@ export const sendVerificationEmail = async (req, res, next) => {
     }
 
     const rawToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(rawToken)
-      .digest("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
     await redisHelpers.setEx(
       `verify_email:${hashedToken}`,
       user._id.toString(),
-      24 * 60 * 60 //24 hrs
+      24 * 60 * 60
     );
 
     await sendEmail(user.email, rawToken);
@@ -392,8 +399,8 @@ export const verifyEmail = async (req, res, next) => {
     const { token } = req.query;
 
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
     const userId = await redisHelpers.get(`verify_email:${hashedToken}`);
+
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -450,8 +457,8 @@ export const getProfile = async (req, res, next) => {
       success: true,
       data: { user: userResponse },
     });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -508,33 +515,48 @@ export const updateProfile = async (req, res, next) => {
       message: "Profile updated successfully",
       data: { user: userResponse },
     });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
-export const changeUserRole = async (req, res) => {
-  const { role } = req.body;
+export const changeUserRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
 
-  const user = await User.findById(req.params.userId);
-  if (!user) return res.status(404).json({ message: "User not found" });
+    if (!["user", "admin"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid role",
+      });
+    }
 
-  if (user.email === process.env.SUPER_ADMIN_EMAIL) {
-  return res.status(403).json({
-    message: "Super admin role cannot be changed",
-  });
-}
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
 
-  if (!["user", "admin"].includes(role)) {
-    return res.status(400).json({ message: "Invalid role" });
+    if (user.email === process.env.SUPER_ADMIN_EMAIL) {
+      return res.status(403).json({
+        success: false,
+        error: "Super admin role cannot be changed",
+      });
+    }
+
+    user.role = role;
+    user.tokenVersion += 1;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `User role updated to ${role}`,
+    });
+  } catch (err) {
+    next(err);
   }
-
-  user.role = role;
-  user.tokenVersion += 1; // invalidate old tokens
-  await user.save();
-
-
-  res.json({ message: `User role updated to ${role}` });
 };
 
 export const softDeleteUser = async (req, res, next) => {
@@ -572,17 +594,10 @@ export const softDeleteUser = async (req, res, next) => {
     try {
       await sendAccountDeletionEmail(user.email, user.username);
     } catch (e) {
-      console.error("Deletion email failed:", e.message);
+      logger.error(`Deletion email failed: ${e.message}`);
     }
 
-    console.log({
-      action: "SOFT_DELETE_USER",
-      actor: req.user.id,
-      actorName: req.user.username,
-      target: userId,
-      role: user.role,
-      time: new Date(),
-    });
+    logger.info(`SOFT_DELETE_USER - actor: ${req.user.id}, target: ${userId}`);
 
     res.status(200).json({
       success: true,
@@ -591,9 +606,9 @@ export const softDeleteUser = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-//middleware for softDeleteUser
+// Middleware to ensure the acting user is not deleted
 export const ensureActiveUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -618,16 +633,23 @@ export const updateUserStatus = async (req, res, next) => {
     const { userId } = req.params;
 
     if (!["active", "suspended"].includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
+      return res.status(400).json({
+        success: false,
+        error: "Invalid status",
+      });
     }
 
     const user = await User.findById(userId);
     if (!user || user.isDeleted) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
     }
 
     if (user.email === process.env.SUPER_ADMIN_EMAIL) {
       return res.status(403).json({
+        success: false,
         error: "Super admin status cannot be changed",
       });
     }
@@ -663,17 +685,4 @@ export const forceLogoutUser = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-export default {
-  register,
-  login,
-  refreshToken,
-  logout,
-  changePassword,
-  forgotPassword,
-  verifyPasswordResetEmail,
-  resetPassword,
-  sendVerificationEmail,
-  verifyEmail,
 };
