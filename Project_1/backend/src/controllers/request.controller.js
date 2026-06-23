@@ -3,7 +3,6 @@ import Request from "../model/request.model.js";
 import logger from "../utils/logger.js";
 import { getCache, setCache, invalidateRequestCaches } from "../services/cache.service.js";
 
-// Helper — avoids CastError 500s on bad ObjectId strings
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // Create Request
