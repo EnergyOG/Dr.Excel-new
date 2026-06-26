@@ -1,15 +1,30 @@
-FROM node:18-alpine
-
+# ── Stage 1: install dependencies ──────────────────────────────────────────
+FROM node:18-alpine AS deps
 WORKDIR /app
 
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-RUN npm install
+# ── Stage 2: production image ───────────────────────────────────────────────
+FROM node:18-alpine AS runner
+WORKDIR /app
 
+# Create a non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Copy only production deps and source
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ENV PORT=3000
+# Never copy .env into the image — inject via docker run or ECS task definition
+# Make sure .dockerignore excludes it
 
-EXPOSE 3000
+ENV NODE_ENV=production
+ENV PORT=5000
 
-CMD ["npm", "run", "dev"]
+EXPOSE 5000
+
+# Drop root privileges
+USER appuser
+
+CMD ["node", "server.js"]
