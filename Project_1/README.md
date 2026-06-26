@@ -1,4 +1,4 @@
-![backend banner](/public/images/backend-banner2.png)
+![backend banner](public/images/backend-banner2.png)
 # Request API
 
 A lightweight Express + MongoDB backend for managing user-submitted requests, with Redis caching for fast reads.
