@@ -19,4 +19,4 @@ EXPOSE 5000
 
 USER appuser
 
-CMD ["node", "server.js"]
+CMD ["node", "server.js"] 
