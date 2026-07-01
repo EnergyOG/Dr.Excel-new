@@ -1,5 +1,5 @@
 import { useState } from "react"
-import background from "/login-background.png"
+import background from "/actual-bg.png"
 
 function SignupPage({ onBackToLogin }) {
   const [username, setUsername] = useState("")
@@ -7,15 +7,51 @@ function SignupPage({ onBackToLogin }) {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [agree, setAgree] = useState(false)
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (event) => {
+  // TODO: Replace with your backend base URL or define VITE_API_URL in .env
+  const API_BASE = import.meta.env.VITE_API_URL || ""
+
+  const handleSubmit = async (event) => {
     event.preventDefault()
+    setError("")
+
     if (password !== confirmPassword) {
-      alert("Passwords do not match")
+      setError("Passwords do not match")
       return
     }
-    console.log({ username, email, password, agree })
-    alert("Signup submitted: " + username)
+
+    setLoading(true)
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Signup failed" }))
+        setError(errorData.message || "Signup failed")
+        return
+      }
+
+      const data = await response.json()
+      console.log("Signup success", data)
+      // TODO: Update this to match your login flow after signup (redirect, show message, auto-login)
+      onBackToLogin()
+    } catch (fetchError) {
+      setError(fetchError.message || "Network error during signup")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -115,9 +151,10 @@ function SignupPage({ onBackToLogin }) {
 
             <button
               type="submit"
-              className="w-full rounded-3xl bg-green-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-green-700"
+              disabled={loading}
+              className="w-full rounded-3xl bg-green-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              Create account
+              {loading ? "Creating account..." : "Create account"}
             </button>
 
             <p className="text-center text-sm text-slate-500">
