@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useSignIn } from "@clerk/clerk-react"
 import background from "/actual-bg.png"
 
 function Loginpage({ onCreateAccount }) {
@@ -47,6 +48,17 @@ function Loginpage({ onCreateAccount }) {
     }
   }
 
+  const { signIn } = useSignIn()
+
+  const signInWith = (strategy) => {
+    return signIn?.authenticateWithRedirect({
+      strategy: strategy,
+      // Clerk will redirect through its OAuth flow; keep these as-is or adjust per your app
+      redirectUrl: '/sso-callback',
+      redirectUrlComplete: '/dashboard',
+    })
+  }
+
   return (
     <div
       className="min-h-screen bg-cover bg-center flex items-center justify-center"
@@ -67,14 +79,15 @@ function Loginpage({ onCreateAccount }) {
               </div>
             ) : null}
             <div className="space-y-3">
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              onClick={() => signInWith('oauth_google')}>
                 <span className="h-5 w-5 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-blue-500"></span>
                 Continue with Google
               </button>
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]">
+              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]" onClick={() => signInWith('oauth_facebook')}>
                 Continue with Facebook
               </button>
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800">
+              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800" onClick={() => signInWith('oauth_twitter')}>
                 Continue with Twitter
               </button>
             </div>

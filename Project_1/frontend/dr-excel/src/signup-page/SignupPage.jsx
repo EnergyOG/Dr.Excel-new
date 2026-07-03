@@ -1,5 +1,33 @@
 import { useState } from "react"
+import { useSignIn } from "@clerk/clerk-react"
 import background from "/actual-bg.png"
+
+function SocialButtons() {
+  const { signIn } = useSignIn()
+
+  const signInWith = (strategy) => {
+    return signIn?.authenticateWithRedirect({
+      strategy: strategy,
+      redirectUrl: '/sso-callback',
+      redirectUrlComplete: '/dashboard',
+    })
+  }
+
+  return (
+    <>
+      <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50" onClick={() => signInWith('oauth_google')}>
+        <span className="h-5 w-5 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-blue-500"></span>
+        Continue with Google
+      </button>
+      <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]" onClick={() => signInWith('oauth_facebook')}>
+        Continue with Facebook
+      </button>
+      <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800" onClick={() => signInWith('oauth_twitter')}>
+        Continue with Twitter
+      </button>
+    </>
+  )
+}
 
 function SignupPage({ onBackToLogin }) {
   const [username, setUsername] = useState("")
@@ -70,16 +98,7 @@ function SignupPage({ onBackToLogin }) {
             </div>
 
             <div className="space-y-3">
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-                <span className="h-5 w-5 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-blue-500"></span>
-                Continue with Google
-              </button>
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]">
-                Continue with Facebook
-              </button>
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800">
-                Continue with Twitter
-              </button>
+              <SocialButtons />
             </div>
 
             <div className="flex items-center gap-3 text-sm text-slate-500">
