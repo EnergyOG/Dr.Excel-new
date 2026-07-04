@@ -42,3 +42,36 @@
 .hero-scroll {
   animation: hero-bounce 2s ease-in-out infinite;
 }
+
+@keyframes section-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section-reveal {
+  animation: section-reveal 0.65s ease-out both;
+}
+
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.65s ease;
+}
+
+.card-shine:hover::after {
+  transform: translateX(120%);
+}
