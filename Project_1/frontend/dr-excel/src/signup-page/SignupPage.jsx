@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useSignIn } from "@clerk/clerk-react"
 import background from "/actual-bg.png"
 
@@ -37,6 +38,7 @@ function SignupPage({ onBackToLogin }) {
   const [agree, setAgree] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   // TODO: Replace with your backend base URL or define VITE_API_URL in .env
   const API_BASE = import.meta.env.VITE_API_URL || ""
@@ -74,12 +76,21 @@ function SignupPage({ onBackToLogin }) {
       const data = await response.json()
       console.log("Signup success", data)
       // TODO: Update this to match your login flow after signup (redirect, show message, auto-login)
-      onBackToLogin()
+      handleBackToLogin()
     } catch (fetchError) {
       setError(fetchError.message || "Network error during signup")
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleBackToLogin = () => {
+    if (onBackToLogin) {
+      onBackToLogin()
+      return
+    }
+
+    navigate("/login")
   }
 
   return (
@@ -180,7 +191,7 @@ function SignupPage({ onBackToLogin }) {
               Already have an account?{' '}
               <button
                 type="button"
-                onClick={onBackToLogin}
+                onClick={handleBackToLogin}
                 className="font-semibold text-sky-600 hover:underline"
               >
                 Sign in

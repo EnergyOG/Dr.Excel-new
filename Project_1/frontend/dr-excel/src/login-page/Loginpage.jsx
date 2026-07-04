@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useSignIn } from "@clerk/clerk-react"
 import background from "/actual-bg.png"
 
@@ -8,6 +9,7 @@ function Loginpage({ onCreateAccount }) {
   const [remember, setRemember] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   // TODO: Replace with your backend base URL or define VITE_API_URL in .env
   const API_BASE = import.meta.env.VITE_API_URL || ""
@@ -49,6 +51,15 @@ function Loginpage({ onCreateAccount }) {
   }
 
   const { signIn } = useSignIn()
+
+  const handleCreateAccount = () => {
+    if (onCreateAccount) {
+      onCreateAccount()
+      return
+    }
+
+    navigate("/signup")
+  }
 
   const signInWith = (strategy) => {
     return signIn?.authenticateWithRedirect({
@@ -151,7 +162,7 @@ function Loginpage({ onCreateAccount }) {
               Don&apos;t have an account?{' '}
               <button
                 type="button"
-                onClick={onCreateAccount}
+                onClick={handleCreateAccount}
                 className="font-semibold text-sky-600 hover:underline"
               >
                 Create one
