@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { SignedIn, SignedOut, SignOutButton } from "@clerk/clerk-react"
+import { Link, useNavigate } from "react-router-dom"
+import { SignedIn, SignedOut, SignOutButton, useUser } from "@clerk/clerk-react"
 
 const PUBLIC_IMAGES = {
   heroBg: '/hero-bg.png',
@@ -85,6 +85,9 @@ function UserProfileIcon({ className = "w-8 h-8" }) {
 function Nav() {
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
+  const navigate = useNavigate()
+  const { user, isLoaded } = useUser()
+  const displayName = user?.fullName || user?.firstName || user?.username || "there"
 
   useEffect(() => {
     const onDocClick = (e) => {
@@ -98,7 +101,7 @@ function Nav() {
     <nav className="w-full py-4 bg-white/5 backdrop-blur-sm absolute inset-x-0 top-0 z-40">
       <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/dr-excel-logo.png" alt="DR.EXCEL logo" className="h-10 w-10 object-contain" />
+          <img src="/logo.png" alt="DR.EXCEL logo" className="h-10 w-10 object-contain" />
           <span className="text-white font-bold tracking-wider">DR.EXCEL</span>
         </div>
         <div className="hidden md:flex items-center gap-4 text-white">
@@ -111,31 +114,62 @@ function Nav() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Profile avatar + dropdown */}
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setOpen((v) => !v)}
-              className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-white/20 focus:outline-none flex items-center justify-center bg-slate-700"
-              aria-label="Profile"
-            >
-              <UserProfileIcon className="w-6 h-6 text-slate-300" />
-            </button>
-            {open && (
-              <div className="absolute right-0 mt-2 w-44 bg-white text-slate-900 rounded-md shadow-lg ring-1 ring-black/10">
-                <div className="py-1">
-                  <SignedOut>
-                    <Link to="/login" className="block px-4 py-2 text-sm hover:bg-slate-100">Sign in</Link>
-                    <Link to="/signup" className="block px-4 py-2 text-sm hover:bg-slate-100">Sign up</Link>
-                  </SignedOut>
-                  <SignedIn>
-                    <Link to="/settings" className="block px-4 py-2 text-sm hover:bg-slate-100">Settings</Link>
-                    <SignOutButton>
-                      <button className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100">Sign out</button>
-                    </SignOutButton>
-                  </SignedIn>
-                </div>
+          <SignedOut>
+            <div className="hidden sm:flex items-center gap-2">
+              <Link to="/login" className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20">
+                Sign in
+              </Link>
+              <Link to="/signup" className="rounded-full bg-green-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-green-400">
+                Sign up
+              </Link>
+            </div>
+          </SignedOut>
+          <SignedIn>
+            {isLoaded && (
+              <div className="hidden sm:flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur-sm">
+                <span>Hello, {displayName}</span>
               </div>
             )}
+          </SignedIn>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/settings')}
+              className="h-10 w-10 rounded-full ring-2 ring-white/20 flex items-center justify-center bg-white/10 text-white transition hover:bg-white/20"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
+                <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
+                <path d="M19 12a7 7 0 0 0-.1-1.1l2-1.6-2-3.4-2.4 1a7.2 7.2 0 0 0-1.9-1.1L14.5 2h-5l-.9 2.4a7.2 7.2 0 0 0-1.9 1.1l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.1l-2 1.6 2 3.4 2.4-1a7.2 7.2 0 0 0 1.9 1.1l.9 2.4h5l.9-2.4a7.2 7.2 0 0 0 1.9-1.1l2.4 1 2-3.4-2-1.6c.1-.4.1-.7.1-1.1Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setOpen((v) => !v)}
+                className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-white/20 focus:outline-none flex items-center justify-center bg-slate-700"
+                aria-label="Profile"
+              >
+                <UserProfileIcon className="w-6 h-6 text-slate-300" />
+              </button>
+              {open && (
+                <div className="absolute right-0 mt-2 w-44 bg-white text-slate-900 rounded-md shadow-lg ring-1 ring-black/10">
+                  <div className="py-1">
+                    <SignedOut>
+                      <Link to="/login" className="block px-4 py-2 text-sm hover:bg-slate-100">Sign in</Link>
+                      <Link to="/signup" className="block px-4 py-2 text-sm hover:bg-slate-100">Sign up</Link>
+                    </SignedOut>
+                    <SignedIn>
+                      <Link to="/settings" className="block px-4 py-2 text-sm hover:bg-slate-100">Settings</Link>
+                      <SignOutButton>
+                        <button className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100">Sign out</button>
+                      </SignOutButton>
+                    </SignedIn>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -191,21 +225,21 @@ function Hero() {
             className={`mt-8 text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight ${mounted ? 'hero-animate' : 'opacity-0'}`}
             style={{ animationDelay: '0.2s' }}
           >
-            Excel Solutions That{' '}
+            Practical Excel Systems That{' '}
             <span className="relative inline-flex h-[1.08em] min-w-[10.5ch] items-center justify-center overflow-hidden align-bottom">
               <span key={wordIndex} className="hero-word bg-gradient-to-r from-green-300 via-emerald-400 to-teal-300 bg-clip-text text-transparent">
                 {HERO_WORDS[wordIndex]}
               </span>
             </span>
             <br className="hidden sm:block" />
-            {' '}Your Business
+            {' '}Your Team Can Use Daily
           </h1>
 
           <p
             className={`mt-6 text-base md:text-lg lg:text-xl text-slate-200/90 max-w-2xl mx-auto leading-relaxed ${mounted ? 'hero-animate' : 'opacity-0'}`}
             style={{ animationDelay: '0.35s' }}
           >
-            Professional Excel development to streamline workflows, eliminate manual work, and turn your data into clear, actionable insights.
+            We help startups reduce reporting time, remove spreadsheet bottlenecks, and replace manual work with reliable tools that improve decision-making without adding overhead.
           </p>
 
           <div

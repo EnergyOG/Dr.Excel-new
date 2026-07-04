@@ -3,6 +3,7 @@ import { RedirectToSignIn, SignedIn, SignedOut, SignIn, SignUp } from "@clerk/cl
 import Homepage from "./homepage/Homepage"
 import Loginpage from "./login-page/Loginpage"
 import SignupPage from "./signup-page/SignupPage"
+import AccountSettings from "./account-settings/AccountSettings"
 
 function ProtectedRoute({ children }) {
   return (
@@ -38,6 +39,7 @@ function App() {
       <Route path="/sign-in/*" element={<SignIn path="/sign-in" routing="path" redirectUrl="/dashboard" />} />
       <Route path="/sign-up/*" element={<SignUp path="/sign-up" routing="path" redirectUrl="/dashboard" />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
       <Route path="*" element={<Homepage />} />
     </Routes>
   )
