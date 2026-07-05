@@ -113,7 +113,7 @@ function Loginpage({ onCreateAccount }) {
               <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]" onClick={() => signInWith('oauth_facebook')}>
                 Continue with Facebook
               </button>
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800" onClick={() => signInWith('oauth_twitter')}>
+              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800" onClick={() => signInWith('oauth_x')}>
                 Continue with Twitter
               </button>
             </div>

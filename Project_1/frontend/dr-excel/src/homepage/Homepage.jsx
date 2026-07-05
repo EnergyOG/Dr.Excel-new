@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { SignedIn, SignedOut, SignOutButton, useUser } from "@clerk/clerk-react"
+import { SignedOut, useAuth, useUser } from "@clerk/clerk-react"
 import { HomePageSkeleton } from "../components/Skeleton"
 
 const PUBLIC_IMAGES = {
@@ -87,8 +87,16 @@ function Nav() {
   const [isNavVisible, setIsNavVisible] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const hideTimerRef = useRef(null)
-  const { user, isLoaded } = useUser()
-  const greetingText = !isLoaded || !user
+  const navigate = useNavigate()
+  const { isLoaded, isSignedIn } = useAuth()
+  const { user, isLoaded: userLoaded } = useUser()
+  const handleProtectedAction = (event) => {
+    if (isLoaded && !isSignedIn) {
+      event.preventDefault()
+      navigate('/login')
+    }
+  }
+  const greetingText = !userLoaded || !user
     ? "Hello, New User 👋"
     : `Hello, ${user.firstName || user.fullName?.split(" ")[0] || user.username || "there"}`
 
@@ -154,11 +162,11 @@ function Nav() {
         </div>
 
         <div className="hidden items-center gap-4 text-white md:flex">
-          <a href="#home" className="rounded px-3 py-1 transition hover:bg-white/10">Home</a>
-          <a href="#services" className="rounded px-3 py-1 transition hover:bg-white/10">Services</a>
-          <a href="#benefits" className="rounded px-3 py-1 transition hover:bg-white/10">Benefits</a>
-          <a href="#projects" className="rounded px-3 py-1 transition hover:bg-white/10">Projects</a>
-          <a href="#contact" className="rounded px-3 py-1 transition hover:bg-white/10">Contact</a>
+          <a href="#home" onClick={handleProtectedAction} className="rounded px-3 py-1 transition hover:bg-white/10">Home</a>
+          <a href="#services" onClick={handleProtectedAction} className="rounded px-3 py-1 transition hover:bg-white/10">Services</a>
+          <a href="#benefits" onClick={handleProtectedAction} className="rounded px-3 py-1 transition hover:bg-white/10">Benefits</a>
+          <a href="#projects" onClick={handleProtectedAction} className="rounded px-3 py-1 transition hover:bg-white/10">Projects</a>
+          <a href="#contact" onClick={handleProtectedAction} className="rounded px-3 py-1 transition hover:bg-white/10">Contact</a>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -170,6 +178,7 @@ function Nav() {
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-full overflow-hidden ring-2 ring-white/20 bg-slate-700 text-slate-300 focus:outline-none"
             aria-label="Profile"
+            onClick={handleProtectedAction}
           >
             <UserProfileIcon className="h-6 w-6" />
           </button>
@@ -190,11 +199,11 @@ function Nav() {
       {isMobileMenuOpen && (
         <div className="mx-4 mt-3 rounded-2xl border border-white/10 bg-slate-900/95 p-4 shadow-2xl md:hidden">
           <div className="flex flex-col gap-2 text-sm text-white">
-            <a href="#home" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Home</a>
-            <a href="#services" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Services</a>
-            <a href="#benefits" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Benefits</a>
-            <a href="#projects" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Projects</a>
-            <a href="#contact" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
+            <a href="#home" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={(event) => { setIsMobileMenuOpen(false); handleProtectedAction(event) }}>Home</a>
+            <a href="#services" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={(event) => { setIsMobileMenuOpen(false); handleProtectedAction(event) }}>Services</a>
+            <a href="#benefits" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={(event) => { setIsMobileMenuOpen(false); handleProtectedAction(event) }}>Benefits</a>
+            <a href="#projects" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={(event) => { setIsMobileMenuOpen(false); handleProtectedAction(event) }}>Projects</a>
+            <a href="#contact" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={(event) => { setIsMobileMenuOpen(false); handleProtectedAction(event) }}>Contact</a>
 
             <div className="mt-2 flex flex-col gap-2 border-t border-white/10 pt-3">
               <SignedOut>
@@ -220,6 +229,14 @@ const HERO_WORDS = ['Automate', 'Streamline', 'Optimize', 'Scale']
 
 function Hero() {
   const bgUrl = PUBLIC_IMAGES.heroBg
+  const navigate = useNavigate()
+  const { isLoaded, isSignedIn } = useAuth()
+  const handleProtectedAction = (event) => {
+    if (isLoaded && !isSignedIn) {
+      event.preventDefault()
+      navigate('/login')
+    }
+  }
   const highlights = [
     { label: 'Custom Dashboards', href: '#services' },
     { label: 'Process Automation', href: '#services' },
@@ -231,11 +248,15 @@ function Hero() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    const timer = setInterval(() => {
+    const timer = window.setTimeout(() => setMounted(true), 50)
+    const interval = window.setInterval(() => {
       setWordIndex((i) => (i + 1) % HERO_WORDS.length)
     }, 2800)
-    return () => clearInterval(timer)
+
+    return () => {
+      window.clearTimeout(timer)
+      window.clearInterval(interval)
+    }
   }, [])
 
   return (
@@ -266,7 +287,7 @@ function Hero() {
           >
             Practical Excel Systems That{' '}
             <span className="relative inline-flex h-[1.08em] min-w-[10.5ch] items-center justify-center overflow-hidden align-bottom">
-              <span key={wordIndex} className="hero-word bg-gradient-to-r from-green-300 via-emerald-400 to-teal-300 bg-clip-text text-transparent">
+              <span key={wordIndex} className="hero-word bg-linear-to-r from-green-300 via-emerald-400 to-teal-300 bg-clip-text text-transparent">
                 {HERO_WORDS[wordIndex]}
               </span>
             </span>
@@ -287,13 +308,15 @@ function Hero() {
           >
             <a
               href="#services"
+              onClick={handleProtectedAction}
               className="group relative overflow-hidden rounded-full bg-green-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-green-500/25 transition hover:-translate-y-0.5 hover:bg-green-400 hover:shadow-green-400/30"
             >
               <span className="relative z-10">View Services</span>
-              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition group-hover:translate-x-full duration-700" />
+              <span className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/20 to-transparent transition group-hover:translate-x-full duration-700" />
             </a>
             <a
               href="#contact"
+              onClick={handleProtectedAction}
               className="rounded-full border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/10"
             >
               Get Started
@@ -308,6 +331,7 @@ function Hero() {
               <a
                 key={label}
                 href={href}
+                onClick={handleProtectedAction}
                 className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 backdrop-blur-sm transition hover:-translate-y-0.5 hover:border-green-400/40 hover:bg-green-400/10 hover:text-white"
               >
                 {label}
@@ -332,6 +356,15 @@ function Hero() {
 }
 
 function Services() {
+  const navigate = useNavigate()
+  const { isLoaded, isSignedIn } = useAuth()
+  const handleProtectedAction = (event) => {
+    if (isLoaded && !isSignedIn) {
+      event.preventDefault()
+      navigate('/login')
+    }
+  }
+
   const items = [
     {
       title: 'Custom Spreadsheet Development',
@@ -399,7 +432,7 @@ function Services() {
                   alt={item.title}
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/20 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-slate-950/70 via-slate-900/20 to-transparent" />
                 <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-green-700">
                   {item.tag}
                 </span>
@@ -409,6 +442,7 @@ function Services() {
                 <p className="text-sm leading-relaxed text-slate-600">{item.desc}</p>
                 <a
                   href="#contact"
+                  onClick={handleProtectedAction}
                   className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-green-600 transition group-hover:gap-3"
                 >
                   Request this service
@@ -454,7 +488,7 @@ function Benefits() {
 
   return (
     <section id="benefits" className="relative py-24 bg-slate-950 text-white overflow-hidden">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-green-400/40 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-green-400/40 to-transparent" />
       <div className="max-w-6xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <RevealCard className="relative">
@@ -462,9 +496,9 @@ function Benefits() {
               <img
                 src={PUBLIC_IMAGES.landing}
                 alt="Excel dashboard preview"
-                className="h-[28rem] w-full object-cover"
+                className="h-112 w-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-tr from-slate-950/80 via-slate-900/20 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-tr from-slate-950/80 via-slate-900/20 to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md">
                 <p className="text-xs uppercase tracking-[0.25em] text-green-300">Live Preview</p>
                 <p className="mt-2 text-lg font-semibold">Dashboards that update as your data changes</p>
@@ -508,6 +542,15 @@ function Benefits() {
 }
 
 function Projects() {
+  const navigate = useNavigate()
+  const { isLoaded, isSignedIn } = useAuth()
+  const handleProtectedAction = (event) => {
+    if (isLoaded && !isSignedIn) {
+      event.preventDefault()
+      navigate('/login')
+    }
+  }
+
   const projects = [
     {
       title: 'Financial Dashboard',
@@ -564,9 +607,9 @@ function Projects() {
               <img
                 src={projects[active].image}
                 alt={projects[active].title}
-                className="h-72 md:h-[26rem] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                className="h-72 md:h-104 w-full object-cover transition duration-500 group-hover:scale-[1.02]"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/10 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-slate-950/80 via-slate-900/10 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
                 <p className="text-xs uppercase tracking-[0.25em] text-green-300">Case Study</p>
                 <h3 className="mt-2 text-2xl md:text-3xl font-bold text-white">{projects[active].title}</h3>
@@ -587,7 +630,11 @@ function Projects() {
               <RevealCard key={project.title} delay={i * 60}>
                 <button
                   type="button"
-                  onClick={() => setActive(i)}
+                  onClick={(event) => {
+                    if (handleProtectedAction(event)) {
+                      setActive(i)
+                    }
+                  }}
                   className={`w-full rounded-2xl border p-4 text-left transition ${
                     active === i
                       ? 'border-green-300 bg-white shadow-md shadow-green-100'
@@ -617,6 +664,14 @@ function Projects() {
 
 function Contact() {
   const [focused, setFocused] = useState('')
+  const navigate = useNavigate()
+  const { isLoaded, isSignedIn } = useAuth()
+  const handleProtectedAction = (event) => {
+    if (isLoaded && !isSignedIn) {
+      event.preventDefault()
+      navigate('/login')
+    }
+  }
 
   return (
     <section id="contact" className="py-24 bg-white text-slate-900">
@@ -631,7 +686,7 @@ function Contact() {
           <RevealCard className="lg:col-span-2 space-y-5">
             <div className="relative overflow-hidden rounded-3xl border border-slate-200">
               <img src="/lets-build.png" alt="Contact Dr.Excel" className="h-56 w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-slate-950/75 to-transparent" />
               <div className="absolute bottom-5 left-5 right-5">
                 <p className="text-sm font-semibold text-white">Available for new projects</p>
                 <p className="mt-1 text-xs text-slate-200">Typical response within 24 hours</p>
@@ -664,7 +719,10 @@ function Contact() {
           </RevealCard>
 
           <RevealCard delay={120} className="lg:col-span-3">
-            <form className="rounded-3xl border border-slate-200 bg-slate-50 p-6 md:p-8 shadow-sm">
+            <form
+              onSubmit={handleProtectedAction}
+              className="rounded-3xl border border-slate-200 bg-slate-50 p-6 md:p-8 shadow-sm"
+            >
               <h3 className="text-xl font-bold">Start your project brief</h3>
               <p className="mt-2 text-sm text-slate-600">Share a few details and we'll get back to you with recommendations.</p>
 
@@ -703,6 +761,7 @@ function Contact() {
 
                 <button
                   type="submit"
+                  onClick={handleProtectedAction}
                   className="rounded-full bg-green-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-200 transition hover:-translate-y-0.5 hover:bg-green-500"
                 >
                   Send Message
@@ -717,6 +776,15 @@ function Contact() {
 }
 
 function Footer() {
+  const navigate = useNavigate()
+  const { isLoaded, isSignedIn } = useAuth()
+  const handleProtectedAction = (event) => {
+    if (isLoaded && !isSignedIn) {
+      event.preventDefault()
+      navigate('/login')
+    }
+  }
+
   return (
     <footer className="border-t border-white/10 bg-slate-950 py-12 text-slate-300">
       <div className="max-w-6xl mx-auto px-6">
@@ -746,6 +814,7 @@ function Footer() {
             <p className="mt-4 text-sm text-slate-400">Ready to automate your next workflow?</p>
             <a
               href="#contact"
+              onClick={handleProtectedAction}
               className="mt-4 inline-flex rounded-full bg-green-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-400"
             >
               Book a Consultation

@@ -22,7 +22,7 @@ function SocialButtons() {
   return (
     <>
       <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50" onClick={() => signInWith('oauth_google')}>
-        <span className="h-5 w-5 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-blue-500"></span>
+        <span className="h-5 w-5 rounded-full bg-linear-to-r from-red-500 via-yellow-400 to-blue-500"></span>
         Continue with Google
       </button>
       <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]" onClick={() => signInWith('oauth_facebook')}>
@@ -114,7 +114,7 @@ function SignupPage({ onBackToLogin }) {
       style={{ backgroundImage: `url(${background})` }}
     >
       <div className="absolute inset-0 bg-slate-950/60"></div>
-      <div className="relative max-w-3xl w-full mx-4 p-8 md:p-12 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl overflow-hidden">
+      <div className="relative max-w-3xl w-full mx-4 p-8 md:p-12 bg-white/95 backdrop-blur-xl rounded-4xl shadow-2xl overflow-hidden">
         <div className="grid md:grid-cols-[0.95fr_1.05fr] gap-10 items-center">
           <div className="space-y-6">
             <div>
@@ -193,6 +193,8 @@ function SignupPage({ onBackToLogin }) {
               />
               I agree to the privacy policy and terms of service.
             </label>
+
+            {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
 
             <button
               type="submit"
