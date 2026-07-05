@@ -1,15 +1,12 @@
 import { Link } from "react-router-dom"
 import { useUser, SignOutButton } from "@clerk/clerk-react"
+import { AccountSettingsSkeleton } from "../components/Skeleton"
 
 function AccountSettings() {
   const { user, isLoaded } = useUser()
 
   if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <p className="text-slate-600">Loading account settings...</p>
-      </div>
-    )
+    return <AccountSettingsSkeleton />
   }
 
   return (

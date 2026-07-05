@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useSignIn } from "@clerk/clerk-react"
 import background from "/actual-bg.png"
+import { AuthPageSkeleton } from "../components/Skeleton"
 
 function SocialButtons() {
   const { signIn } = useSignIn()
@@ -38,10 +39,16 @@ function SignupPage({ onBackToLogin }) {
   const [agree, setAgree] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [pageReady, setPageReady] = useState(false)
   const navigate = useNavigate()
 
   // TODO: Replace with your backend base URL or define VITE_API_URL in .env
   const API_BASE = import.meta.env.VITE_API_URL || ""
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setPageReady(true), 250)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -91,6 +98,10 @@ function SignupPage({ onBackToLogin }) {
     }
 
     navigate("/login")
+  }
+
+  if (!pageReady) {
+    return <AuthPageSkeleton message="Preparing sign-up experience..." />
   }
 
   return (

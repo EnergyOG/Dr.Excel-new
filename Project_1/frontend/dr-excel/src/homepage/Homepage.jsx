@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { SignedIn, SignedOut, SignOutButton, useUser } from "@clerk/clerk-react"
+import { HomePageSkeleton } from "../components/Skeleton"
 
 const PUBLIC_IMAGES = {
   heroBg: '/hero-bg.png',
@@ -83,9 +84,7 @@ function UserProfileIcon({ className = "w-8 h-8" }) {
 }
 
 function Nav() {
-  const [open, setOpen] = useState(false)
   const [isNavVisible, setIsNavVisible] = useState(true)
-  const menuRef = useRef(null)
   const hideTimerRef = useRef(null)
   const navigate = useNavigate()
   const { user, isLoaded } = useUser()
@@ -106,10 +105,6 @@ function Nav() {
   }
 
   useEffect(() => {
-    const onDocClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
-    }
-
     const onMouseMove = (e) => {
       if (e.clientY <= 90) {
         showNav()
@@ -126,12 +121,10 @@ function Nav() {
       }
     }
 
-    document.addEventListener('click', onDocClick)
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('scroll', onScroll, { passive: true })
 
     return () => {
-      document.removeEventListener('click', onDocClick)
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('scroll', onScroll)
       if (hideTimerRef.current) {
@@ -198,27 +191,13 @@ function Nav() {
               </svg>
             </button>
 
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setOpen((v) => !v)}
-                className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-white/20 focus:outline-none flex items-center justify-center bg-slate-700"
-                aria-label="Profile"
-              >
-                <UserProfileIcon className="w-6 h-6 text-slate-300" />
-              </button>
-              {open && (
-                <div className="absolute right-0 mt-2 w-44 bg-white text-slate-900 rounded-md shadow-lg ring-1 ring-black/10">
-                  <div className="py-1">
-                    <SignedIn>
-                      <Link to="/settings" className="block px-4 py-2 text-sm hover:bg-slate-100">Settings</Link>
-                      <SignOutButton>
-                        <button className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100">Sign out</button>
-                      </SignOutButton>
-                    </SignedIn>
-                  </div>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-white/20 focus:outline-none flex items-center justify-center bg-slate-700"
+              aria-label="Profile"
+            >
+              <UserProfileIcon className="w-6 h-6 text-slate-300" />
+            </button>
           </div>
         </div>
       </div>
@@ -772,6 +751,17 @@ function Footer() {
 }
 
 export default function Homepage() {
+  const [isReady, setIsReady] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsReady(true), 350)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  if (!isReady) {
+    return <HomePageSkeleton />
+  }
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <Hero />

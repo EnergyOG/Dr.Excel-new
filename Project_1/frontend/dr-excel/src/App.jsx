@@ -4,6 +4,7 @@ import Homepage from "./homepage/Homepage"
 import Loginpage from "./login-page/Loginpage"
 import SignupPage from "./signup-page/SignupPage"
 import AccountSettings from "./account-settings/AccountSettings"
+import { DashboardSkeleton } from "./components/Skeleton"
 
 function ProtectedRoute({ children }) {
   return (
@@ -18,14 +19,7 @@ function ProtectedRoute({ children }) {
 
 function Dashboard() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <div className="max-w-3xl w-full rounded-[2rem] bg-white p-10 shadow-2xl">
-        <h1 className="text-4xl font-bold text-slate-900">Protected Dashboard</h1>
-        <p className="mt-4 text-slate-600">
-          Only signed-in users can perform actions here. If you are not signed in, you will be redirected to the sign-in page.
-        </p>
-      </div>
-    </div>
+    <DashboardSkeleton />
   )
 }
 
