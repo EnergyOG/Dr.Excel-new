@@ -68,13 +68,17 @@ function Loginpage({ onCreateAccount }) {
     navigate("/signup")
   }
 
-  const signInWith = (strategy) => {
-    return signIn?.authenticateWithRedirect({
-      strategy: strategy,
-      // Clerk will redirect through its OAuth flow; keep these as-is or adjust per your app
-      redirectUrl: '/sso-callback',
-      redirectUrlComplete: '/dashboard',
-    })
+  const signInWith = async (strategy) => {
+    try {
+      setError("")
+      await signIn?.authenticateWithRedirect({
+        strategy,
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: '/dashboard',
+      })
+    } catch (err) {
+      setError(err.message || "Unable to continue with social sign-in")
+    }
   }
 
   if (!pageReady) {

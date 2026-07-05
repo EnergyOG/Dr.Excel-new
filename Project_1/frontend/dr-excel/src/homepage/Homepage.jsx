@@ -85,9 +85,12 @@ function UserProfileIcon({ className = "w-8 h-8" }) {
 
 function Nav() {
   const [isNavVisible, setIsNavVisible] = useState(true)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const hideTimerRef = useRef(null)
   const { user, isLoaded } = useUser()
-  const displayName = user?.fullName || user?.firstName || user?.username || "there"
+  const greetingText = !isLoaded || !user
+    ? "Hello, New User 👋"
+    : `Hello, ${user.firstName || user.fullName?.split(" ")[0] || user.username || "there"}`
 
   const showNav = () => {
     if (hideTimerRef.current) {
@@ -138,56 +141,77 @@ function Nav() {
       onMouseEnter={showNav}
       onMouseLeave={scheduleHideNav}
     >
-      <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-  <img
-    src="/logo.png"
-    alt="DR.EXCEL logo"
-    className="h-16 w-auto object-contain"
-  />
-  <span className="text-white font-bold tracking-wider">
-    DR.EXCEL
-  </span>
-</div>
-        <div className="hidden md:flex items-center gap-4 text-white">
-          <a href="#home" className="px-3 py-1 rounded hover:bg-white/10 transition">Home</a>
-          <a href="#services" className="px-3 py-1 rounded hover:bg-white/10 transition">Services</a>
-          <a href="#benefits" className="px-3 py-1 rounded hover:bg-white/10 transition">Benefits</a>
-          <a href="#projects" className="px-3 py-1 rounded hover:bg-white/10 transition">Projects</a>
-          {/* Contact now matches other link styles */}
-          <a href="#contact" className="px-3 py-1 rounded hover:bg-white/10 transition">Contact</a>
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 sm:px-6">
+        <div className="flex items-center gap-2">
+          <img
+            src="/logo.png"
+            alt="DR.EXCEL logo"
+            className="h-12 w-auto object-contain sm:h-14"
+          />
+          <span className="text-sm font-bold tracking-wider text-white sm:text-base">
+            DR.EXCEL
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <SignedOut>
-            <div className="hidden sm:flex items-center gap-2">
-              <Link to="/login" className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20">
-                Sign in
-              </Link>
-              <Link to="/signup" className="rounded-full bg-green-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-green-400">
-                Sign up
-              </Link>
-            </div>
-          </SignedOut>
-          <SignedIn>
-            {isLoaded && (
-              <div className="hidden sm:flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur-sm">
-                <span>Hello, {displayName}</span>
-              </div>
-            )}
-          </SignedIn>
+        <div className="hidden items-center gap-4 text-white md:flex">
+          <a href="#home" className="rounded px-3 py-1 transition hover:bg-white/10">Home</a>
+          <a href="#services" className="rounded px-3 py-1 transition hover:bg-white/10">Services</a>
+          <a href="#benefits" className="rounded px-3 py-1 transition hover:bg-white/10">Benefits</a>
+          <a href="#projects" className="rounded px-3 py-1 transition hover:bg-white/10">Projects</a>
+          <a href="#contact" className="rounded px-3 py-1 transition hover:bg-white/10">Contact</a>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-white/20 focus:outline-none flex items-center justify-center bg-slate-700"
-              aria-label="Profile"
-            >
-              <UserProfileIcon className="w-6 h-6 text-slate-300" />
-            </button>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="hidden items-center rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm text-white backdrop-blur-sm sm:flex">
+            <span>{greetingText}</span>
           </div>
+
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-full overflow-hidden ring-2 ring-white/20 bg-slate-700 text-slate-300 focus:outline-none"
+            aria-label="Profile"
+          >
+            <UserProfileIcon className="h-6 w-6" />
+          </button>
+
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 md:hidden"
+            aria-label="Toggle navigation"
+            onClick={() => setIsMobileMenuOpen((value) => !value)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      {isMobileMenuOpen && (
+        <div className="mx-4 mt-3 rounded-2xl border border-white/10 bg-slate-900/95 p-4 shadow-2xl md:hidden">
+          <div className="flex flex-col gap-2 text-sm text-white">
+            <a href="#home" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Home</a>
+            <a href="#services" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Services</a>
+            <a href="#benefits" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Benefits</a>
+            <a href="#projects" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Projects</a>
+            <a href="#contact" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={() => setIsMobileMenuOpen(false)}>Contact</a>
+
+            <div className="mt-2 flex flex-col gap-2 border-t border-white/10 pt-3">
+              <SignedOut>
+                <Link to="/login" className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-center transition hover:bg-white/20" onClick={() => setIsMobileMenuOpen(false)}>
+                  Sign in
+                </Link>
+                <Link to="/signup" className="rounded-full bg-green-500 px-3 py-2 text-center font-semibold transition hover:bg-green-400" onClick={() => setIsMobileMenuOpen(false)}>
+                  Sign up
+                </Link>
+              </SignedOut>
+              <div className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-center text-sm">
+                {greetingText}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }

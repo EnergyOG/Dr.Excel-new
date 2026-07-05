@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom"
-import { RedirectToSignIn, SignedIn, SignedOut, SignIn, SignUp } from "@clerk/clerk-react"
+import { AuthenticateWithRedirectCallback, RedirectToSignIn, SignedIn, SignedOut, SignIn, SignUp } from "@clerk/clerk-react"
 import Homepage from "./homepage/Homepage"
 import Loginpage from "./login-page/Loginpage"
 import SignupPage from "./signup-page/SignupPage"
@@ -30,6 +30,7 @@ function App() {
       <Route path="/login" element={<Loginpage />} />
       <Route path="/signup" element={<SignupPage />} />
       {/* Clerk routes used for OAuth redirect handling - keep them */}
+      <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
       <Route path="/sign-in/*" element={<SignIn path="/sign-in" routing="path" redirectUrl="/dashboard" />} />
       <Route path="/sign-up/*" element={<SignUp path="/sign-up" routing="path" redirectUrl="/dashboard" />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
