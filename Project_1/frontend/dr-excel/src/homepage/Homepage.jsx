@@ -86,7 +86,6 @@ function UserProfileIcon({ className = "w-8 h-8" }) {
 function Nav() {
   const [isNavVisible, setIsNavVisible] = useState(true)
   const hideTimerRef = useRef(null)
-  const navigate = useNavigate()
   const { user, isLoaded } = useUser()
   const displayName = user?.fullName || user?.firstName || user?.username || "there"
 
@@ -179,18 +178,6 @@ function Nav() {
           </SignedIn>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/settings')}
-              className="h-10 w-10 rounded-full ring-2 ring-white/20 flex items-center justify-center bg-white/10 text-white transition hover:bg-white/20"
-              aria-label="Settings"
-              title="Settings"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
-                <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
-                <path d="M19 12a7 7 0 0 0-.1-1.1l2-1.6-2-3.4-2.4 1a7.2 7.2 0 0 0-1.9-1.1L14.5 2h-5l-.9 2.4a7.2 7.2 0 0 0-1.9 1.1l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.1l-2 1.6 2 3.4 2.4-1a7.2 7.2 0 0 0 1.9 1.1l.9 2.4h5l.9-2.4a7.2 7.2 0 0 0 1.9-1.1l2.4 1 2-3.4-2-1.6c.1-.4.1-.7.1-1.1Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-
             <button
               type="button"
               className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-white/20 focus:outline-none flex items-center justify-center bg-slate-700"
