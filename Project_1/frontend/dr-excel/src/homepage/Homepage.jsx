@@ -4,11 +4,11 @@ import { SignedIn, SignedOut, SignOutButton, useUser } from "@clerk/clerk-react"
 
 const PUBLIC_IMAGES = {
   heroBg: '/hero-bg.png',
-  landing: '/landing-img.png',
+  landing: '/why-us.png',
   smHero: '/sm-hero-img.png',
   custom_spreed_sheet_img: '/cus-spreed.jpg',
   automated_img: '/at-calc.jpg',
-  financialDashboard: '/financial-management-system.jpg',
+  financialDashboard: '/financial_dashboard.png.webp',
   process_automation: '/ps-at.jpg',
   timesheet: '/employee-timesheet-tracker.jpg',
   salesAnalytics: '/sales-analytics-dashboard.jpg',
@@ -84,26 +84,79 @@ function UserProfileIcon({ className = "w-8 h-8" }) {
 
 function Nav() {
   const [open, setOpen] = useState(false)
+  const [isNavVisible, setIsNavVisible] = useState(true)
   const menuRef = useRef(null)
+  const hideTimerRef = useRef(null)
   const navigate = useNavigate()
   const { user, isLoaded } = useUser()
   const displayName = user?.fullName || user?.firstName || user?.username || "there"
+
+  const showNav = () => {
+    if (hideTimerRef.current) {
+      window.clearTimeout(hideTimerRef.current)
+    }
+    setIsNavVisible(true)
+  }
+
+  const scheduleHideNav = () => {
+    if (hideTimerRef.current) {
+      window.clearTimeout(hideTimerRef.current)
+    }
+    hideTimerRef.current = window.setTimeout(() => setIsNavVisible(false), 220)
+  }
 
   useEffect(() => {
     const onDocClick = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
     }
+
+    const onMouseMove = (e) => {
+      if (e.clientY <= 90) {
+        showNav()
+      } else {
+        scheduleHideNav()
+      }
+    }
+
+    const onScroll = () => {
+      if (window.scrollY <= 40) {
+        showNav()
+      } else {
+        scheduleHideNav()
+      }
+    }
+
     document.addEventListener('click', onDocClick)
-    return () => document.removeEventListener('click', onDocClick)
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('scroll', onScroll, { passive: true })
+
+    return () => {
+      document.removeEventListener('click', onDocClick)
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('scroll', onScroll)
+      if (hideTimerRef.current) {
+        window.clearTimeout(hideTimerRef.current)
+      }
+    }
   }, [])
 
   return (
-    <nav className="w-full py-4 bg-white/5 backdrop-blur-sm absolute inset-x-0 top-0 z-40">
+    <nav
+      className={`fixed inset-x-0 top-0 z-50 w-full border-b border-white/10 bg-slate-950/70 py-4 backdrop-blur-xl transition-transform duration-300 ${isNavVisible ? 'translate-y-0' : '-translate-y-full'}`}
+      onMouseEnter={showNav}
+      onMouseLeave={scheduleHideNav}
+    >
       <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="DR.EXCEL logo" className="h-10 w-10 object-contain" />
-          <span className="text-white font-bold tracking-wider">DR.EXCEL</span>
-        </div>
+      <div className="flex items-center gap-2">
+  <img
+    src="/logo.png"
+    alt="DR.EXCEL logo"
+    className="h-16 w-auto object-contain"
+  />
+  <span className="text-white font-bold tracking-wider">
+    DR.EXCEL
+  </span>
+</div>
         <div className="hidden md:flex items-center gap-4 text-white">
           <a href="#home" className="px-3 py-1 rounded hover:bg-white/10 transition">Home</a>
           <a href="#services" className="px-3 py-1 rounded hover:bg-white/10 transition">Services</a>
@@ -156,10 +209,6 @@ function Nav() {
               {open && (
                 <div className="absolute right-0 mt-2 w-44 bg-white text-slate-900 rounded-md shadow-lg ring-1 ring-black/10">
                   <div className="py-1">
-                    <SignedOut>
-                      <Link to="/login" className="block px-4 py-2 text-sm hover:bg-slate-100">Sign in</Link>
-                      <Link to="/signup" className="block px-4 py-2 text-sm hover:bg-slate-100">Sign up</Link>
-                    </SignedOut>
                     <SignedIn>
                       <Link to="/settings" className="block px-4 py-2 text-sm hover:bg-slate-100">Settings</Link>
                       <SignOutButton>
@@ -474,37 +523,37 @@ function Projects() {
       title: 'Financial Dashboard',
       desc: 'Automated financial reporting with real-time KPI tracking and budget analysis.',
       tags: ['KPI Tracking', 'Budgeting'],
-      image: '/landing-img.png',
+      image: '/financial_dashboard.png.webp',
     },
     {
       title: 'Inventory Management',
       desc: 'Complete inventory tracking with automated reorder alerts and supplier management.',
       tags: ['Inventory', 'Alerts'],
-      image: '/hero-bg.png',
+      image: '/inventry-man.jpg',
     },
     {
       title: 'Timesheet Tracker',
       desc: 'Automated timesheet system with payroll calculations and attendance monitoring.',
       tags: ['Payroll', 'HR'],
-      image: '/actual-bg.png',
+      image: '/timesheet.png',
     },
     {
       title: 'Sales Analytics',
       desc: 'Comprehensive sales tracking with performance metrics and trend analysis.',
       tags: ['Sales', 'Trends'],
-      image: '/small-bg.png',
+      image: '/sales-analytics.png',
     },
     {
       title: 'Cost Estimator',
       desc: 'Dynamic cost estimation tool with material tracking and labor calculations.',
       tags: ['Estimation', 'Projects'],
-      image: '/sm-hero-img.png',
+      image: '/cost-estimator.jpg.webp',
     },
     {
       title: 'Invoice Generator',
       desc: 'Professional invoice system with automated calculations and client database.',
       tags: ['Billing', 'Clients'],
-      image: '/landing-img.png',
+      image: '/invoice-gen.png',
     },
   ]
 
@@ -591,7 +640,7 @@ function Contact() {
         <div className="mt-14 grid grid-cols-1 lg:grid-cols-5 gap-8">
           <RevealCard className="lg:col-span-2 space-y-5">
             <div className="relative overflow-hidden rounded-3xl border border-slate-200">
-              <img src="/actual-bg.png" alt="Contact Dr.Excel" className="h-56 w-full object-cover" />
+              <img src="/lets-build.png" alt="Contact Dr.Excel" className="h-56 w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 to-transparent" />
               <div className="absolute bottom-5 left-5 right-5">
                 <p className="text-sm font-semibold text-white">Available for new projects</p>
@@ -684,7 +733,7 @@ function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <div className="flex items-center gap-3">
-              <img src="/dr-excel-logo.png" alt="DR.EXCEL logo" className="h-10 w-10 object-contain" />
+              <img src="/logo.png" alt="DR.EXCEL logo" className="h-10 w-10 object-contain" />
               <div className="font-bold text-white">DR.EXCEL</div>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-slate-400">
