@@ -786,7 +786,14 @@ function Footer() {
   }
 
   return (
-    <footer className="border-t border-white/10 bg-slate-950 py-12 text-slate-300">
+    <footer
+      className="border-t border-white/10 py-12 text-slate-300"
+      style={{
+        backgroundImage: `linear-gradient(rgba(2,6,23,0.55), rgba(2,6,23,0.70)), url(${PUBLIC_IMAGES.heroBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
       <div className="max-w-6xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>

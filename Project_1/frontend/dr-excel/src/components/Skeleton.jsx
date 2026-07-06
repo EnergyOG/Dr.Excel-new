@@ -148,3 +148,31 @@ export function DashboardSkeleton() {
     </div>
   )
 }
+
+export function AdminDashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+      <div className="border-b border-white/10 bg-slate-900/50 py-6">
+        <div className="mx-auto max-w-7xl px-4">
+          <SkeletonBlock className="h-8 w-48" />
+          <SkeletonText className="mt-2 w-32" />
+        </div>
+      </div>
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="mb-6 flex gap-6">
+          <SkeletonBlock className="h-10 w-20" />
+          <SkeletonBlock className="h-10 w-20" />
+          <SkeletonBlock className="h-10 w-20" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <SkeletonText className="w-20" />
+              <SkeletonBlock className="mt-2 h-8 w-12" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
