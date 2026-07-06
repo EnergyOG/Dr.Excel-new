@@ -54,10 +54,12 @@ const startServer = async () => {
     // This prevents rateLimiter.js from initialising its RedisStore before Redis is connected
     const { default: requestRoutes } = await import("./src/routes/request.route.js");
     const { default: authRoutes } = await import("./src/routes/auth.route.js");
+    const { default: adminRoutes } = await import("./src/routes/admin.route.js");
 
     // Routes
     app.use("/api/requests", requestRoutes);
     app.use("/api/auth", authRoutes);
+    app.use("/api/admin", adminRoutes);
 
     // Error handlers — must come after routes
     app.use(notFound);
