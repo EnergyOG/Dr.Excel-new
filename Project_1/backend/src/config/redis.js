@@ -41,7 +41,6 @@ export const redisHelpers = {
       logger.error(`Redis SET error [${key}]: ${err.message}`);
     }
   },
-
   async get(key) {
     try {
       const data = await redisClient.get(key);
@@ -51,7 +50,6 @@ export const redisHelpers = {
       return null;
     }
   },
-
   async del(key) {
     try {
       await redisClient.del(key);
@@ -59,7 +57,6 @@ export const redisHelpers = {
       logger.error(`Redis DEL error [${key}]: ${err.message}`);
     }
   },
-
   async exists(key) {
     try {
       return await redisClient.exists(key);
@@ -68,7 +65,6 @@ export const redisHelpers = {
       return false;
     }
   },
-
   async mset(keyValuePairs) {
     try {
       if (!keyValuePairs || typeof keyValuePairs !== "object") {
@@ -80,7 +76,6 @@ export const redisHelpers = {
       logger.error(`Redis MSET error: ${err.message}`);
     }
   },
-
   async blacklistToken(token, ttl) {
     try {
       await redisClient.setEx(`blacklist:${token}`, ttl, "true");
@@ -88,7 +83,6 @@ export const redisHelpers = {
       logger.error(`Redis BLACKLIST error: ${err.message}`);
     }
   },
-
   async isTokenBlacklisted(token) {
     try {
       return await redisClient.exists(`blacklist:${token}`);
