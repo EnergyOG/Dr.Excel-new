@@ -5,11 +5,12 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import { AdminDashboardSkeleton } from "../components/Skeleton";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken";
 
 // Helper to get auth token
 const getAuthToken = async () => {
-  const token = await window.Clerk?.session?.getToken();
-  return token;
+  const clerkToken = window.Clerk?.session ? await window.Clerk.session.getToken() : null;
+  return clerkToken || localStorage.getItem(LOCAL_ACCESS_TOKEN_KEY);
 };
 
 // Stats Card Component
@@ -75,7 +76,7 @@ function UsersTab() {
     setActionLoading(userId);
     try {
       const token = await getAuthToken();
-      const res = await fetch(`${API_BASE_URL}/auth/admin/users/${userId}/role`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/role`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -97,7 +98,7 @@ function UsersTab() {
     setActionLoading(userId);
     try {
       const token = await getAuthToken();
-      const res = await fetch(`${API_BASE_URL}/auth/admin/users/${userId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/status`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -120,7 +121,7 @@ function UsersTab() {
     setActionLoading(userId);
     try {
       const token = await getAuthToken();
-      const res = await fetch(`${API_BASE_URL}/auth/admin/users/${userId}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -456,6 +457,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
+  const hasLocalSession = Boolean(localStorage.getItem(LOCAL_ACCESS_TOKEN_KEY));
 
   const fetchStats = useCallback(async () => {
     try {
@@ -475,12 +477,12 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (isLoaded && (isSignedIn || hasLocalSession)) {
       void fetchStats();
     }
-  }, [isLoaded, isSignedIn, fetchStats]);
+  }, [isLoaded, isSignedIn, hasLocalSession, fetchStats]);
 
-  if (!isLoaded || !isSignedIn) {
+  if (!isLoaded || (!isSignedIn && !hasLocalSession)) {
     return <AdminDashboardSkeleton />;
   }
 

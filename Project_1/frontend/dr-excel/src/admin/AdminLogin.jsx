@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom"
 import background from "/actual-bg.png"
 import { AuthPageSkeleton } from "../components/Skeleton"
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken"
+
 function AdminLogin() {
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
@@ -10,8 +13,6 @@ function AdminLogin() {
   const [loading, setLoading] = useState(false)
   const [pageReady, setPageReady] = useState(false)
   const navigate = useNavigate()
-
-  const API_BASE = import.meta.env.VITE_API_URL || ""
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -26,7 +27,7 @@ function AdminLogin() {
         },
         credentials: "include",
         body: JSON.stringify({
-          identifier,
+          email: identifier,
           password,
         }),
       })
@@ -38,7 +39,9 @@ function AdminLogin() {
       }
 
       const data = await response.json()
-      console.log("Admin login success", data)
+      if (data.data?.accessToken) {
+        localStorage.setItem(LOCAL_ACCESS_TOKEN_KEY, data.data.accessToken)
+      }
       
       // Check if user is admin and redirect accordingly
       if (data.data?.user?.role === "admin") {
@@ -90,7 +93,7 @@ function AdminLogin() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-4">
-              <label className="block text-sm font-medium text-slate-700">Email or Username</label>
+              <label className="block text-sm font-medium text-slate-700">Email</label>
               <input
                 type="text"
                 value={identifier}

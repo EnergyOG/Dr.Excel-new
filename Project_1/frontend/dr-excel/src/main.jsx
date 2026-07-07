@@ -12,6 +12,10 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ClerkProvider
         publishableKey={clerkPublishableKey}
+        signInUrl="/login"
+        signUpUrl="/signup"
+        signInFallbackRedirectUrl="/"
+        signUpFallbackRedirectUrl="/"
         navigate={(to) => window.history.pushState(null, '', to)}
       >
         <App />
