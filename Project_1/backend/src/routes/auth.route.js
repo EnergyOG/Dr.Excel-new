@@ -12,14 +12,7 @@ import {
   resetPassword,
   sendVerificationEmail,
   verifyEmail,
-  getAllUsers,
-  softDeleteUser,
-  ensureActiveUser,
-  changeUserRole,
-  updateUserStatus,
-  forceLogoutUser,
 } from "../controllers/auth.controller.js";
-
 import {
   signUpValidation,
   signInValidation,
@@ -30,8 +23,7 @@ import {
   resetPasswordValidation,
   verifyEmailValidation,
 } from "../middleware/validator.js";
-
-import { requireAdmin, verifyToken } from "../middleware/auth.js";
+import { verifyToken } from "../middleware/auth.js";
 import { authLimiter, strictAuthLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
@@ -45,19 +37,12 @@ router.get("/verify-password-reset", strictAuthLimiter, verifyPasswordResetValid
 router.post("/reset-password", strictAuthLimiter, resetPasswordValidation, resetPassword);
 router.get("/verify-email", verifyEmailValidation, verifyEmail);
 
-// Protected routes (authenticated users)
+// Protected routes (local/JWT-authenticated users)
 router.post("/logout", verifyToken, logout);
 router.get("/profile", verifyToken, getProfile);
 router.patch("/profile", verifyToken, updateProfileValidation, updateProfile);
 router.post("/change-password", verifyToken, authLimiter, changePasswordValidation, changePassword);
 router.post("/send-verification", verifyToken, authLimiter, sendVerificationEmail);
-
-// Admin-only routes
-router.get("/admin/users", verifyToken, requireAdmin, getAllUsers);
-router.patch("/admin/users/:userId/role", verifyToken, requireAdmin, changeUserRole);
-router.patch("/admin/users/:userId/status", verifyToken, requireAdmin, updateUserStatus);
-router.post("/admin/users/:userId/force-logout", verifyToken, requireAdmin, forceLogoutUser);
-router.delete("/admin/users/:userId", verifyToken, requireAdmin, ensureActiveUser, softDeleteUser);
 
 // Health check
 router.get("/health", (req, res) => {

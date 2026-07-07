@@ -1,12 +1,9 @@
 import crypto from "crypto";
 import bcrypt from "bcrypt";
-import User from "../model/auth.model.js";
+import User from "../model/user.model.js";
 import { generateTokenPair, verifyRefreshToken } from "../config/jwt.js";
 import { redisHelpers } from "../config/redis.js";
-import {
-  sendVerificationEmail as sendEmail,
-  sendAccountDeletionEmail,
-} from "../services/email.service.js";
+import { sendVerificationEmail as sendEmail } from "../services/email.service.js";
 import logger from "../utils/logger.js";
 
 export const register = async (req, res, next) => {
@@ -31,6 +28,7 @@ export const register = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await User.create({
+      authProvider: "local",
       username,
       email,
       password: hashedPassword,
@@ -75,25 +73,13 @@ export const register = async (req, res, next) => {
   }
 };
 
-export const getAllUsers = async (req, res, next) => {
-  try {
-    const users = await User.find({ isDeleted: false }).select("-password");
-
-    res.status(200).json({
-      success: true,
-      count: users.length,
-      data: users,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select("+password");
+    // authProvider: "local" matters here — a Clerk-synced account can share
+    // the same email but has no password field, so it must never match here.
+    const user = await User.findOne({ email, authProvider: "local" }).select("+password");
     if (!user || user.isDeleted) {
       return res.status(401).json({
         success: false,
@@ -235,7 +221,7 @@ export const changePassword = async (req, res, next) => {
     const { currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user.id).select("+password");
 
-    if (!user) {
+    if (!user || user.authProvider !== "local") {
       return res.status(404).json({
         success: false,
         error: "User not found",
@@ -268,7 +254,7 @@ export const changePassword = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, authProvider: "local" });
 
     // Always return 200 to prevent email enumeration
     if (!user) {
@@ -468,15 +454,20 @@ export const updateProfile = async (req, res, next) => {
     const { email, username } = req.body;
 
     if (email || username) {
+      // NOTE: the original version only checked email for collisions and
+      // silently allowed duplicate usernames. Both are checked now.
       const existingUser = await User.findOne({
         _id: { $ne: userId },
-        $or: [...(email ? [{ email }] : [])],
+        $or: [
+          ...(email ? [{ email }] : []),
+          ...(username ? [{ username }] : []),
+        ],
       });
 
       if (existingUser) {
         return res.status(409).json({
           success: false,
-          error: "Email already in use",
+          error: "Email or username already in use",
         });
       }
     }
@@ -514,173 +505,6 @@ export const updateProfile = async (req, res, next) => {
       success: true,
       message: "Profile updated successfully",
       data: { user: userResponse },
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const changeUserRole = async (req, res, next) => {
-  try {
-    const { role } = req.body;
-
-    if (!["user", "admin"].includes(role)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid role",
-      });
-    }
-
-    const user = await User.findById(req.params.userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
-      });
-    }
-
-    if (user.email === process.env.SUPER_ADMIN_EMAIL) {
-      return res.status(403).json({
-        success: false,
-        error: "Super admin role cannot be changed",
-      });
-    }
-
-    user.role = role;
-    user.tokenVersion += 1;
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      message: `User role updated to ${role}`,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const softDeleteUser = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-
-    if (req.user.id === userId) {
-      return res.status(400).json({
-        success: false,
-        error: "You cannot delete your own account",
-      });
-    }
-
-    const user = await User.findById(userId);
-    if (!user || user.isDeleted) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
-      });
-    }
-
-    if (user.email === process.env.SUPER_ADMIN_EMAIL) {
-      return res.status(403).json({
-        success: false,
-        error: "Super admin account cannot be deleted",
-      });
-    }
-
-    user.isDeleted = true;
-    user.deleteAt = new Date();
-    await user.save();
-
-    await redisHelpers.del(`refresh_token:${userId}`);
-
-    try {
-      await sendAccountDeletionEmail(user.email, user.username);
-    } catch (e) {
-      logger.error(`Deletion email failed: ${e.message}`);
-    }
-
-    logger.info(`SOFT_DELETE_USER - actor: ${req.user.id}, target: ${userId}`);
-
-    res.status(200).json({
-      success: true,
-      message: "User account has been deactivated",
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// Middleware to ensure the acting user is not deleted
-export const ensureActiveUser = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id);
-
-    if (!user || user.isDeleted) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
-      });
-    }
-
-    req.currentUser = user;
-    next();
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const updateUserStatus = async (req, res, next) => {
-  try {
-    const { status } = req.body;
-    const { userId } = req.params;
-
-    if (!["active", "suspended"].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid status",
-      });
-    }
-
-    const user = await User.findById(userId);
-    if (!user || user.isDeleted) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
-      });
-    }
-
-    if (user.email === process.env.SUPER_ADMIN_EMAIL) {
-      return res.status(403).json({
-        success: false,
-        error: "Super admin status cannot be changed",
-      });
-    }
-
-    user.status = status;
-    await user.save();
-
-    // Force logout if suspended
-    if (status === "suspended") {
-      await redisHelpers.del(`refresh_token:${userId}`);
-    }
-
-    res.status(200).json({
-      success: true,
-      message: `User ${status} successfully`,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const forceLogoutUser = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-
-    await redisHelpers.del(`refresh_token:${userId}`);
-    await redisHelpers.del(`user:${userId}`);
-
-    res.status(200).json({
-      success: true,
-      message: "User logged out from all sessions",
     });
   } catch (err) {
     next(err);

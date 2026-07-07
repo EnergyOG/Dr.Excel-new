@@ -54,7 +54,6 @@ export const errorHandler = (err, req, res, next) => {
     message = "Invalid token";
     statusCode = 401;
   }
-
   if (err.name === "TokenExpiredError") {
     message = "Token expired";
     statusCode = 401;
