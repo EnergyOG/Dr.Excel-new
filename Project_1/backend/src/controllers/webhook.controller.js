@@ -1,8 +1,10 @@
 import { verifyWebhook } from "@clerk/express/webhooks";
 import {
+  cacheUser,
   upsertUserFromClerk,
   softDeleteUserByClerkId,
 } from "../services/userSync.service.js";
+import clerkClient from "../config/clerk.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -38,8 +40,14 @@ export const handleClerkWebhook = async (req, res) => {
         break;
       }
       case "session.created": {
-        // Optional: track last login purely from Clerk session events
-        // instead of doing it in request middleware.
+        if (data.user_id) {
+          const clerkUser = await clerkClient.users.getUser(data.user_id);
+          const user = await upsertUserFromClerk(clerkUser);
+          user.lastLogin = new Date();
+          await user.save();
+          await cacheUser(user);
+          logger.info(`Clerk webhook session.created synced - clerkId: ${data.user_id}`);
+        }
         break;
       }
       default:

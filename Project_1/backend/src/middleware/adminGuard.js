@@ -3,7 +3,7 @@ import { verifyAccessToken } from "../config/jwt.js";
 import { redisHelpers } from "../config/redis.js";
 import clerkClient from "../config/clerk.js";
 import User from "../model/user.model.js";
-import { upsertUserFromClerk } from "../services/userSync.service.js";
+import { cacheUser, upsertUserFromClerk } from "../services/userSync.service.js";
 
 /**
  * Because you have two ways to log in (our own JWT, or a Clerk session),
@@ -48,6 +48,10 @@ export const identify = async (req, res, next) => {
       if (!user || user.isDeleted) {
         return res.status(401).json({ success: false, error: "User not found" });
       }
+
+      user.lastLogin = new Date();
+      await user.save();
+      await cacheUser(user);
 
       req.currentUser = user;
       req.authType = "clerk";

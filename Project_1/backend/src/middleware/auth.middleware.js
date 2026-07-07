@@ -1,7 +1,7 @@
 import { getAuth } from "@clerk/express";
 import clerkClient from "../config/clerk.js";
 import User from "../model/user.model.js";
-import { upsertUserFromClerk } from "../services/userSync.service.js";
+import { cacheUser, upsertUserFromClerk } from "../services/userSync.service.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -37,6 +37,7 @@ export const attachDbUser = async (req, res, next) => {
 
     dbUser.lastLogin = new Date();
     await dbUser.save();
+    await cacheUser(dbUser);
 
     req.dbUser = dbUser;
     next();

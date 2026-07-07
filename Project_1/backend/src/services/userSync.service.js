@@ -1,5 +1,54 @@
 import User from "../model/user.model.js";
+import { redisHelpers } from "../config/redis.js";
 import logger from "../utils/logger.js";
+
+const CLERK_USER_CACHE_TTL = 24 * 60 * 60;
+
+const toCacheUser = (user) => ({
+  id: user._id,
+  authProvider: user.authProvider,
+  clerkId: user.clerkId,
+  email: user.email,
+  username: user.username,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  imageUrl: user.imageUrl,
+  role: user.role,
+  status: user.status,
+  isEmailVerified: user.isEmailVerified,
+  isDeleted: user.isDeleted,
+  externalAccounts: user.externalAccounts || [],
+  lastLogin: user.lastLogin,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+});
+
+export async function cacheUser(user) {
+  if (!user) return;
+
+  const cachedUser = toCacheUser(user);
+  const id = user._id.toString();
+
+  await Promise.all([
+    redisHelpers.setEx(`user:${id}`, cachedUser, CLERK_USER_CACHE_TTL),
+    user.clerkId
+      ? redisHelpers.setEx(`user:clerk:${user.clerkId}`, cachedUser, CLERK_USER_CACHE_TTL)
+      : Promise.resolve(),
+    user.email
+      ? redisHelpers.setEx(`user:email:${user.email}`, cachedUser, CLERK_USER_CACHE_TTL)
+      : Promise.resolve(),
+  ]);
+}
+
+async function deleteUserCaches(user) {
+  if (!user) return;
+
+  await Promise.all([
+    redisHelpers.del(`user:${user._id}`),
+    user.clerkId ? redisHelpers.del(`user:clerk:${user.clerkId}`) : Promise.resolve(),
+    user.email ? redisHelpers.del(`user:email:${user.email}`) : Promise.resolve(),
+  ]);
+}
 
 /**
  * Normalizes a Clerk user object (same shape whether it comes from a
@@ -49,6 +98,7 @@ export async function upsertUserFromClerk(clerkUser) {
     { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
   );
 
+  await cacheUser(user);
   return user;
 }
 
@@ -60,6 +110,7 @@ export async function softDeleteUserByClerkId(clerkId) {
   );
 
   if (user) {
+    await deleteUserCaches(user);
     logger.info(`SOFT_DELETE_USER (via Clerk webhook) - clerkId: ${clerkId}`);
   }
 
