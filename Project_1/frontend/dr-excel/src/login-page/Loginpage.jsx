@@ -4,6 +4,9 @@ import { useSignIn } from "@clerk/clerk-react"
 import background from "/actual-bg.png"
 import { AuthPageSkeleton } from "../components/Skeleton"
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken"
+
 function Loginpage({ onCreateAccount }) {
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
@@ -12,9 +15,6 @@ function Loginpage({ onCreateAccount }) {
   const [loading, setLoading] = useState(false)
   const [pageReady, setPageReady] = useState(false)
   const navigate = useNavigate()
-
-  // TODO: Replace with your backend base URL or define VITE_API_URL in .env
-  const API_BASE = import.meta.env.VITE_API_URL || ""
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -29,7 +29,7 @@ function Loginpage({ onCreateAccount }) {
         },
         credentials: "include", // TODO: remove or adjust if you do not use cookies
         body: JSON.stringify({
-          identifier,
+          email: identifier,
           password,
           remember,
         }),
@@ -42,9 +42,10 @@ function Loginpage({ onCreateAccount }) {
       }
 
       const data = await response.json()
-      console.log("Login success", data)
-      // TODO: Add your post-login behavior here (save token, navigate, etc.)
-      window.location.href = "/dashboard"
+      if (data.data?.accessToken) {
+        localStorage.setItem(LOCAL_ACCESS_TOKEN_KEY, data.data.accessToken)
+      }
+      window.location.href = "/"
     } catch (fetchError) {
       setError(fetchError.message || "Network error during login")
     } finally {
@@ -74,7 +75,7 @@ function Loginpage({ onCreateAccount }) {
       await signIn?.authenticateWithRedirect({
         strategy,
         redirectUrl: '/sso-callback',
-        redirectUrlComplete: '/dashboard',
+        redirectUrlComplete: '/',
       })
     } catch (err) {
       setError(err.message || "Unable to continue with social sign-in")
@@ -126,12 +127,12 @@ function Loginpage({ onCreateAccount }) {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-4">
-              <label className="block text-sm font-medium text-slate-700">Email or Username</label>
+              <label className="block text-sm font-medium text-slate-700">Email</label>
               <input
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="jane.doe or jane@example.com"
+                placeholder="jane@example.com"
                 className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                 required
               />

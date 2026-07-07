@@ -4,6 +4,9 @@ import { useSignUp } from "@clerk/clerk-react"
 import background from "/actual-bg.png"
 import { AuthPageSkeleton } from "../components/Skeleton"
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken"
+
 function SocialButtons() {
   const { signUp } = useSignUp()
 
@@ -12,7 +15,7 @@ function SocialButtons() {
       await signUp?.authenticateWithRedirect({
         strategy,
         redirectUrl: '/sso-callback',
-        redirectUrlComplete: '/dashboard',
+        redirectUrlComplete: '/',
       })
     } catch (error) {
       console.error('Social sign-up failed:', error)
@@ -46,9 +49,6 @@ function SignupPage({ onBackToLogin }) {
   const [pageReady, setPageReady] = useState(false)
   const navigate = useNavigate()
 
-  // TODO: Replace with your backend base URL or define VITE_API_URL in .env
-  const API_BASE = import.meta.env.VITE_API_URL || ""
-
   useEffect(() => {
     const timer = window.setTimeout(() => setPageReady(true), 250)
     return () => window.clearTimeout(timer)
@@ -66,7 +66,7 @@ function SignupPage({ onBackToLogin }) {
     setLoading(true)
 
     try {
-      const response = await fetch(`${API_BASE}/auth/signup`, {
+      const response = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,9 +85,10 @@ function SignupPage({ onBackToLogin }) {
       }
 
       const data = await response.json()
-      console.log("Signup success", data)
-      // TODO: Update this to match your login flow after signup (redirect, show message, auto-login)
-      handleBackToLogin()
+      if (data.data?.accessToken) {
+        localStorage.setItem(LOCAL_ACCESS_TOKEN_KEY, data.data.accessToken)
+      }
+      navigate("/")
     } catch (fetchError) {
       setError(fetchError.message || "Network error during signup")
     } finally {

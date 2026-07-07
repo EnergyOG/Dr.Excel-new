@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { SignedOut, useAuth, useUser } from "@clerk/clerk-react"
+import { useAuth, useUser } from "@clerk/clerk-react"
 import { HomePageSkeleton } from "../components/Skeleton"
 
 const PUBLIC_IMAGES = {
@@ -16,6 +16,10 @@ const PUBLIC_IMAGES = {
   costEstimator: '/project-cost-estimator.jpg',
   business_template: '/bs-temp.jpg',
 }
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken"
+const hasLocalAccessToken = () => Boolean(localStorage.getItem(LOCAL_ACCESS_TOKEN_KEY))
 
 function useReveal(threshold = 0.12) {
   const ref = useRef(null)
@@ -86,19 +90,26 @@ function UserProfileIcon({ className = "w-8 h-8" }) {
 function Nav() {
   const [isNavVisible, setIsNavVisible] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [localUser, setLocalUser] = useState(null)
   const hideTimerRef = useRef(null)
+  const profileMenuRef = useRef(null)
   const navigate = useNavigate()
-  const { isLoaded, isSignedIn } = useAuth()
+  const { isLoaded, isSignedIn, signOut } = useAuth()
   const { user, isLoaded: userLoaded } = useUser()
+  const isLocalSignedIn = Boolean(localUser)
+  const isAppSignedIn = isSignedIn || isLocalSignedIn
+  const profileImageUrl = user?.imageUrl || localUser?.imageUrl
   const handleProtectedAction = (event) => {
-    if (isLoaded && !isSignedIn) {
+    if (isLoaded && !isAppSignedIn) {
       event.preventDefault()
       navigate('/login')
+      return false
     }
+    return true
   }
-  const greetingText = !userLoaded || !user
-    ? "Hello, New User 👋"
-    : `Hello, ${user.firstName || user.fullName?.split(" ")[0] || user.username || "there"}`
+  const displayName = user?.firstName || user?.fullName?.split(" ")[0] || user?.username || localUser?.username || localUser?.email?.split("@")[0]
+  const greetingText = !userLoaded && !localUser ? "Hello, New User 👋" : `Hello, ${displayName || "there"}`
 
   const showNav = () => {
     if (hideTimerRef.current) {
@@ -143,6 +154,89 @@ function Nav() {
     }
   }, [])
 
+  useEffect(() => {
+    const fetchLocalProfile = async () => {
+      if (isSignedIn) {
+        setLocalUser(null)
+        return
+      }
+
+      const token = localStorage.getItem(LOCAL_ACCESS_TOKEN_KEY)
+      if (!token) {
+        setLocalUser(null)
+        return
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!response.ok) {
+          localStorage.removeItem(LOCAL_ACCESS_TOKEN_KEY)
+          setLocalUser(null)
+          return
+        }
+
+        const data = await response.json()
+        setLocalUser(data.data?.user || null)
+      } catch (error) {
+        console.error("Profile fetch failed:", error)
+      }
+    }
+
+    if (isLoaded) {
+      void fetchLocalProfile()
+    }
+  }, [isLoaded, isSignedIn])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!profileMenuRef.current?.contains(event.target)) {
+        setIsProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleProfileClick = () => {
+    if (!isLoaded) return
+    if (!isAppSignedIn) {
+      navigate('/login')
+      return
+    }
+
+    setIsProfileMenuOpen((value) => !value)
+  }
+
+  const handleSignOut = async () => {
+    const token = localStorage.getItem(LOCAL_ACCESS_TOKEN_KEY)
+
+    if (token) {
+      try {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      } catch (error) {
+        console.error("Local sign out failed:", error)
+      } finally {
+        localStorage.removeItem(LOCAL_ACCESS_TOKEN_KEY)
+        setLocalUser(null)
+      }
+    }
+
+    if (isSignedIn) {
+      await signOut()
+    }
+
+    setIsProfileMenuOpen(false)
+    setIsMobileMenuOpen(false)
+    navigate('/')
+  }
+
   return (
     <nav
       className={`fixed inset-x-0 top-0 z-50 w-full border-b border-white/10 bg-slate-950/70 py-4 backdrop-blur-xl transition-transform duration-300 ${isNavVisible ? 'translate-y-0' : '-translate-y-full'}`}
@@ -174,14 +268,40 @@ function Nav() {
             <span>{greetingText}</span>
           </div>
 
-          <button
-            type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full overflow-hidden ring-2 ring-white/20 bg-slate-700 text-slate-300 focus:outline-none"
-            aria-label="Profile"
-            onClick={handleProtectedAction}
-          >
-            <UserProfileIcon className="h-6 w-6" />
-          </button>
+          <div ref={profileMenuRef} className="relative">
+            <button
+              type="button"
+              className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-700 text-slate-300 ring-2 ring-white/20 transition hover:ring-green-300/70 focus:outline-none"
+              aria-label="Profile"
+              aria-expanded={isProfileMenuOpen}
+              onClick={handleProfileClick}
+            >
+              {profileImageUrl ? (
+                <img src={profileImageUrl} alt={displayName ? `${displayName} profile` : "Profile"} className="h-full w-full object-cover" />
+              ) : (
+                <UserProfileIcon className="h-6 w-6" />
+              )}
+            </button>
+
+            {isProfileMenuOpen && isAppSignedIn ? (
+              <div className="absolute right-0 mt-3 w-44 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-2 text-sm text-white shadow-2xl backdrop-blur-xl">
+                <Link
+                  to="/settings"
+                  className="block rounded-xl px-3 py-2 text-slate-200 transition hover:bg-white/10"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                >
+                  Account settings
+                </Link>
+                <button
+                  type="button"
+                  className="w-full rounded-xl px-3 py-2 text-left font-semibold text-red-200 transition hover:bg-red-500/15"
+                  onClick={handleSignOut}
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : null}
+          </div>
 
           <button
             type="button"
@@ -206,14 +326,25 @@ function Nav() {
             <a href="#contact" className="rounded px-3 py-2 transition hover:bg-white/10" onClick={(event) => { setIsMobileMenuOpen(false); handleProtectedAction(event) }}>Contact</a>
 
             <div className="mt-2 flex flex-col gap-2 border-t border-white/10 pt-3">
-              <SignedOut>
+              {!isAppSignedIn ? (
                 <Link to="/login" className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-center transition hover:bg-white/20" onClick={() => setIsMobileMenuOpen(false)}>
                   Sign in
                 </Link>
+              ) : null}
+              {!isAppSignedIn ? (
                 <Link to="/signup" className="rounded-full bg-green-500 px-3 py-2 text-center font-semibold transition hover:bg-green-400" onClick={() => setIsMobileMenuOpen(false)}>
                   Sign up
                 </Link>
-              </SignedOut>
+              ) : null}
+              {isAppSignedIn ? (
+                <button
+                  type="button"
+                  className="rounded-full bg-red-500/20 px-3 py-2 text-center font-semibold text-red-100 transition hover:bg-red-500/30"
+                  onClick={handleSignOut}
+                >
+                  Sign out
+                </button>
+              ) : null}
               <div className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-center text-sm">
                 {greetingText}
               </div>
@@ -232,10 +363,12 @@ function Hero() {
   const navigate = useNavigate()
   const { isLoaded, isSignedIn } = useAuth()
   const handleProtectedAction = (event) => {
-    if (isLoaded && !isSignedIn) {
+    if (isLoaded && !isSignedIn && !hasLocalAccessToken()) {
       event.preventDefault()
       navigate('/login')
+      return false
     }
+    return true
   }
   const highlights = [
     { label: 'Custom Dashboards', href: '#services' },
@@ -359,10 +492,12 @@ function Services() {
   const navigate = useNavigate()
   const { isLoaded, isSignedIn } = useAuth()
   const handleProtectedAction = (event) => {
-    if (isLoaded && !isSignedIn) {
+    if (isLoaded && !isSignedIn && !hasLocalAccessToken()) {
       event.preventDefault()
       navigate('/login')
+      return false
     }
+    return true
   }
 
   const items = [
@@ -545,10 +680,12 @@ function Projects() {
   const navigate = useNavigate()
   const { isLoaded, isSignedIn } = useAuth()
   const handleProtectedAction = (event) => {
-    if (isLoaded && !isSignedIn) {
+    if (isLoaded && !isSignedIn && !hasLocalAccessToken()) {
       event.preventDefault()
       navigate('/login')
+      return false
     }
+    return true
   }
 
   const projects = [
@@ -664,12 +801,47 @@ function Projects() {
 
 function Contact() {
   const [focused, setFocused] = useState('')
-  const navigate = useNavigate()
-  const { isLoaded, isSignedIn } = useAuth()
-  const handleProtectedAction = (event) => {
-    if (isLoaded && !isSignedIn) {
-      event.preventDefault()
-      navigate('/login')
+  const [formData, setFormData] = useState({
+    requestName: '',
+    requestEmail: '',
+    requestDetails: '',
+  })
+  const [submitState, setSubmitState] = useState({ status: 'idle', message: '' })
+
+  const updateFormData = (field, value) => {
+    setFormData((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setSubmitState({ status: 'loading', message: '' })
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setSubmitState({
+          status: 'error',
+          message: data.message || data.error || 'Unable to submit your request.',
+        })
+        return
+      }
+
+      setFormData({ requestName: '', requestEmail: '', requestDetails: '' })
+      setSubmitState({
+        status: 'success',
+        message: data.message || 'Request submitted successfully.',
+      })
+    } catch (error) {
+      setSubmitState({
+        status: 'error',
+        message: error.message || 'Network error while submitting your request.',
+      })
     }
   }
 
@@ -720,7 +892,7 @@ function Contact() {
 
           <RevealCard delay={120} className="lg:col-span-3">
             <form
-              onSubmit={handleProtectedAction}
+              onSubmit={handleSubmit}
               className="rounded-3xl border border-slate-200 bg-slate-50 p-6 md:p-8 shadow-sm"
             >
               <h3 className="text-xl font-bold">Start your project brief</h3>
@@ -730,10 +902,13 @@ function Contact() {
                 <label className="block">
                   <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Name</span>
                   <input
+                    value={formData.requestName}
+                    onChange={(event) => updateFormData('requestName', event.target.value)}
                     onFocus={() => setFocused('name')}
                     onBlur={() => setFocused('')}
                     className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 outline-none transition ${focused === 'name' ? 'border-green-400 ring-2 ring-green-100' : 'border-slate-200'}`}
                     placeholder="Your name"
+                    required
                   />
                 </label>
 
@@ -741,10 +916,13 @@ function Contact() {
                   <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</span>
                   <input
                     type="email"
+                    value={formData.requestEmail}
+                    onChange={(event) => updateFormData('requestEmail', event.target.value)}
                     onFocus={() => setFocused('email')}
                     onBlur={() => setFocused('')}
                     className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 outline-none transition ${focused === 'email' ? 'border-green-400 ring-2 ring-green-100' : 'border-slate-200'}`}
                     placeholder="your.email@example.com"
+                    required
                   />
                 </label>
 
@@ -752,6 +930,8 @@ function Contact() {
                   <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Project Details</span>
                   <textarea
                     rows={5}
+                    value={formData.requestDetails}
+                    onChange={(event) => updateFormData('requestDetails', event.target.value)}
                     onFocus={() => setFocused('details')}
                     onBlur={() => setFocused('')}
                     className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 outline-none transition ${focused === 'details' ? 'border-green-400 ring-2 ring-green-100' : 'border-slate-200'}`}
@@ -759,12 +939,18 @@ function Contact() {
                   />
                 </label>
 
+                {submitState.message ? (
+                  <p className={`text-sm font-medium ${submitState.status === 'error' ? 'text-red-600' : 'text-green-700'}`}>
+                    {submitState.message}
+                  </p>
+                ) : null}
+
                 <button
                   type="submit"
-                  onClick={handleProtectedAction}
+                  disabled={submitState.status === 'loading'}
                   className="rounded-full bg-green-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-200 transition hover:-translate-y-0.5 hover:bg-green-500"
                 >
-                  Send Message
+                  {submitState.status === 'loading' ? 'Sending...' : 'Send Message'}
                 </button>
               </div>
             </form>
@@ -779,10 +965,12 @@ function Footer() {
   const navigate = useNavigate()
   const { isLoaded, isSignedIn } = useAuth()
   const handleProtectedAction = (event) => {
-    if (isLoaded && !isSignedIn) {
+    if (isLoaded && !isSignedIn && !hasLocalAccessToken()) {
       event.preventDefault()
       navigate('/login')
+      return false
     }
+    return true
   }
 
   return (
