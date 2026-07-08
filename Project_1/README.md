@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/images/backend-banner2.png" alt="Dr.Excel Banner" width="100%" />
+  <img src="public/images/welcome-banner.png" alt="Dr.Excel Banner" width="100%" />
 </div>
 
 # Dr.Excel
