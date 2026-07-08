@@ -17,9 +17,9 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  FRONTEND_ECR: portfolio-frontend
-  BACKEND_ECR: portfolio-backend
-  ECS_CLUSTER: portfolio-cluster
+  FRONTEND_ECR: dr.excel-frontend
+  BACKEND_ECR: dr.excel-backend
+  ECS_CLUSTER: dr.excel-cluster
   FRONTEND_SERVICE: frontend-service
   BACKEND_SERVICE: backend-service
 
