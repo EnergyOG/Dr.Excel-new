@@ -21,6 +21,7 @@ A modern full-stack web application for request management with dual authenticat
 - [Deployment](#deployment)
 - [Security](#security)
 - [Performance](#performance)
+- [Demo](#demo)
 - [License](#license)
 
 ## Overview
@@ -287,6 +288,18 @@ terraform apply
 - **Cache Invalidation** - Automatic invalidation on write operations
 - **Connection Pooling** - Efficient database connections
 - **Compression** - Response compression for API endpoints
+
+## Demo
+Here is a demo of how the application looks like
+<div align="center">
+  <img
+    src="public/demo-video.gif"
+    alt="Dr.Excel Demo"
+    width="100%"
+  />
+</div>
+
+
 
 ## License
 
