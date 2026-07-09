@@ -52,6 +52,11 @@ const userSchema = new Schema(
       type: Number,
       default: 0,
     },
+    // Profile image URL
+    profileImage: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

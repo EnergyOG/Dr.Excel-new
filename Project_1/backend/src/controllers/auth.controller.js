@@ -66,6 +66,7 @@ export const register = async (req, res, next) => {
             username: user.username,
             email: user.email,
             role: user.role,
+            profileImage: user.profileImage,
           },
           accessToken: tokens.accessToken,
         },
@@ -148,6 +149,7 @@ export const login = async (req, res, next) => {
             username: user.username,
             email: user.email,
             role: user.role,
+            profileImage: user.profileImage,
           },
           accessToken: tokens.accessToken,
         },
@@ -449,6 +451,7 @@ export const getProfile = async (req, res, next) => {
       status: user.status,
       lastLogin: user.lastLogin,
       createdAt: user.createdAt,
+      profileImage: user.profileImage,
     };
 
     await redisHelpers.setEx(`user:${userId}`, userResponse, 3600);
@@ -508,6 +511,7 @@ export const updateProfile = async (req, res, next) => {
       status: user.status,
       lastLogin: user.lastLogin,
       createdAt: user.createdAt,
+      profileImage: user.profileImage,
     };
 
     res.status(200).json({
