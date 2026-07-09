@@ -6,6 +6,7 @@ import { AuthPageSkeleton } from "../components/Skeleton"
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken"
+const LOCAL_USER_KEY = "drExcelUser"
 
 function SocialButtons() {
   const { signIn } = useSignIn()
@@ -56,6 +57,14 @@ function Loginpage({ onCreateAccount }) {
   const [pageReady, setPageReady] = useState(false)
   const navigate = useNavigate()
 
+  const storeUserProfile = (userData) => {
+    localStorage.setItem(LOCAL_USER_KEY, JSON.stringify({
+      username: userData.username,
+      email: userData.email,
+      profileImage: userData.profileImage,
+    }))
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError("")
@@ -84,6 +93,9 @@ function Loginpage({ onCreateAccount }) {
       const data = await response.json()
       if (data.data?.accessToken) {
         localStorage.setItem(LOCAL_ACCESS_TOKEN_KEY, data.data.accessToken)
+      }
+      if (data.data?.user) {
+        storeUserProfile(data.data.user)
       }
       window.location.href = "/"
     } catch (fetchError) {

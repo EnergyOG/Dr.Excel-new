@@ -87,23 +87,51 @@ function Nav() {
   const [isNavVisible, setIsNavVisible] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [localUser, setLocalUser] = useState(null)
   const hideTimerRef = useRef(null)
   const profileTimerRef = useRef(null)
   const navigate = useNavigate()
   const { isLoaded, isSignedIn, signOut } = useAuth()
-  const { user, isLoaded: userLoaded } = useUser()
+  const { user } = useUser()
   const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken"
+  const LOCAL_USER_KEY = "drExcelUser"
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+
+  // Fetch user profile from API if we have a local token but no Clerk user
+  useEffect(() => {
+    const fetchLocalUserProfile = async () => {
+      const token = localStorage.getItem(LOCAL_ACCESS_TOKEN_KEY)
+      if (!token || isSignedIn) return
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.data?.user) {
+            setLocalUser(data.data.user)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch local user profile:", error)
+      }
+    }
+
+    fetchLocalUserProfile()
+  }, [isSignedIn])
 
   const handleProtectedAction = (event) => {
-    if (isLoaded && !isSignedIn) {
+    if (isLoaded && !isSignedIn && !localStorage.getItem(LOCAL_ACCESS_TOKEN_KEY)) {
       event.preventDefault()
       navigate('/login')
     }
   }
 
   const handleSignOut = async () => {
-    // Clear local token
+    // Clear local token and user data
     localStorage.removeItem(LOCAL_ACCESS_TOKEN_KEY)
+    localStorage.removeItem(LOCAL_USER_KEY)
     // Sign out from Clerk if signed in
     if (isSignedIn) {
       await signOut()
@@ -112,9 +140,32 @@ function Nav() {
     window.location.href = '/'
   }
 
-  const greetingText = !userLoaded || !user
-    ? "Hello, New User 👋"
-    : `Hello, ${user.firstName || user.fullName?.split(" ")[0] || user.username || "there"}`
+  // Get user display name - prioritize Clerk user, then local user
+  const getUserDisplayName = () => {
+    if (isSignedIn && user) {
+      return user.firstName || user.fullName?.split(" ")[0] || user.username || "there"
+    }
+    if (localUser) {
+      return localUser.username || "there"
+    }
+    return "there"
+  }
+
+  // Get user profile image - prioritize Clerk user, then local user
+  const getUserProfileImage = () => {
+    if (isSignedIn && user?.imageUrl) {
+      return user.imageUrl
+    }
+    if (localUser?.profileImage) {
+      return localUser.profileImage
+    }
+    return null
+  }
+
+  const userProfileImage = getUserProfileImage()
+  const greetingText = isSignedIn || localUser
+    ? `Hello, ${getUserDisplayName()} 👋`
+    : "Hello, New User 👋"
 
   const showNav = () => {
     if (hideTimerRef.current) {
@@ -216,7 +267,15 @@ function Nav() {
               onMouseEnter={showProfile}
               onMouseLeave={scheduleHideProfile}
             >
-              <UserProfileIcon className="h-6 w-6" />
+              {userProfileImage ? (
+                <img
+                  src={userProfileImage}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserProfileIcon className="h-6 w-6" />
+              )}
             </button>
 
             {isProfileOpen && (isSignedIn || localStorage.getItem(LOCAL_ACCESS_TOKEN_KEY)) && (

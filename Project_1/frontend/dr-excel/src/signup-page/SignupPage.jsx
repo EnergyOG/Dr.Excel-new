@@ -98,17 +98,18 @@ function SignupPage({ onBackToLogin }) {
         return
       }
 
-      const data = await response.json()
-      if (data.data?.accessToken) {
-        localStorage.setItem(LOCAL_ACCESS_TOKEN_KEY, data.data.accessToken)
-      }
-      navigate("/")
-    } catch (fetchError) {
-      setError(fetchError.message || "Network error during signup")
-    } finally {
-      setLoading(false)
-    }
-  }
+       const data = await response.json()
+       if (data.data?.accessToken) {
+         localStorage.setItem(LOCAL_ACCESS_TOKEN_KEY, data.data.accessToken)
+       }
+       // Redirect to signin page after successful signup
+       navigate("/login")
+     } catch (fetchError) {
+       setError(fetchError.message || "Network error during signup")
+     } finally {
+       setLoading(false)
+     }
+   }
 
   const handleBackToLogin = () => {
     if (onBackToLogin) {
