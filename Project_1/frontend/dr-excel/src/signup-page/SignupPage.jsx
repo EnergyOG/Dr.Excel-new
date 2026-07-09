@@ -4,15 +4,18 @@ import { useSignUp } from "@clerk/clerk-react"
 import background from "/actual-bg.png"
 import { AuthPageSkeleton } from "../components/Skeleton"
 
+const API_BASE = import.meta.env.VITE_API_URL;
+const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken"
+
 function SocialButtons() {
   const { signUp } = useSignUp()
 
-  const signInWith = async (strategy) => {
+  const signUpWith = async (strategy) => {
     try {
       await signUp?.authenticateWithRedirect({
         strategy,
         redirectUrl: '/sso-callback',
-        redirectUrlComplete: '/dashboard',
+        redirectUrlComplete: '/',
       })
     } catch (error) {
       console.error('Social sign-up failed:', error)
@@ -21,14 +24,23 @@ function SocialButtons() {
 
   return (
     <>
-      <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50" onClick={() => signInWith('oauth_google')}>
+      <button 
+        className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50" 
+        onClick={() => signUpWith('oauth_google')}
+      >
         <span className="h-5 w-5 rounded-full bg-linear-to-r from-red-500 via-yellow-400 to-blue-500"></span>
         Continue with Google
       </button>
-      <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]" onClick={() => signInWith('oauth_facebook')}>
+      <button 
+        className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]" 
+        onClick={() => signUpWith('oauth_facebook')}
+      >
         Continue with Facebook
       </button>
-      <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800" onClick={() => signInWith('oauth_x')}>
+      <button 
+        className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800" 
+        onClick={() => signUpWith('oauth_x')}
+      >
         Continue with Twitter
       </button>
     </>
@@ -46,9 +58,6 @@ function SignupPage({ onBackToLogin }) {
   const [pageReady, setPageReady] = useState(false)
   const navigate = useNavigate()
 
-  // TODO: Replace with your backend base URL or define VITE_API_URL in .env
-  const API_BASE = import.meta.env.VITE_API_URL || ""
-
   useEffect(() => {
     const timer = window.setTimeout(() => setPageReady(true), 250)
     return () => window.clearTimeout(timer)
@@ -63,10 +72,15 @@ function SignupPage({ onBackToLogin }) {
       return
     }
 
+    if (!agree) {
+      setError("Please agree to the terms and conditions")
+      return
+    }
+
     setLoading(true)
 
     try {
-      const response = await fetch(`${API_BASE}/auth/signup`, {
+      const response = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,9 +99,10 @@ function SignupPage({ onBackToLogin }) {
       }
 
       const data = await response.json()
-      console.log("Signup success", data)
-      // TODO: Update this to match your login flow after signup (redirect, show message, auto-login)
-      handleBackToLogin()
+      if (data.data?.accessToken) {
+        localStorage.setItem(LOCAL_ACCESS_TOKEN_KEY, data.data.accessToken)
+      }
+      navigate("/")
     } catch (fetchError) {
       setError(fetchError.message || "Network error during signup")
     } finally {

@@ -4,17 +4,57 @@ import { useSignIn } from "@clerk/clerk-react"
 import background from "/actual-bg.png"
 import { AuthPageSkeleton } from "../components/Skeleton"
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken"
+
+function SocialButtons() {
+  const { signIn } = useSignIn()
+
+  const signInWith = async (strategy) => {
+    try {
+      await signIn?.authenticateWithRedirect({
+        strategy,
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: '/',
+      })
+    } catch (error) {
+      console.error('Social sign-in failed:', error)
+    }
+  }
+
+  return (
+    <>
+      <button 
+        className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50" 
+        onClick={() => signInWith('oauth_google')}
+      >
+        <span className="h-5 w-5 rounded-full bg-linear-to-r from-red-500 via-yellow-400 to-blue-500"></span>
+        Continue with Google
+      </button>
+      <button 
+        className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]" 
+        onClick={() => signInWith('oauth_facebook')}
+      >
+        Continue with Facebook
+      </button>
+      <button 
+        className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800" 
+        onClick={() => signInWith('oauth_x')}
+      >
+        Continue with Twitter
+      </button>
+    </>
+  )
+}
+
 function Loginpage({ onCreateAccount }) {
-  const [identifier, setIdentifier] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [remember, setRemember] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [pageReady, setPageReady] = useState(false)
   const navigate = useNavigate()
-
-  // TODO: Replace with your backend base URL or define VITE_API_URL in .env
-  const API_BASE = import.meta.env.VITE_API_URL || ""
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -27,9 +67,9 @@ function Loginpage({ onCreateAccount }) {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // TODO: remove or adjust if you do not use cookies
+        credentials: "include",
         body: JSON.stringify({
-          identifier,
+          email,
           password,
           remember,
         }),
@@ -42,9 +82,10 @@ function Loginpage({ onCreateAccount }) {
       }
 
       const data = await response.json()
-      console.log("Login success", data)
-      // TODO: Add your post-login behavior here (save token, navigate, etc.)
-      window.location.href = "/dashboard"
+      if (data.data?.accessToken) {
+        localStorage.setItem(LOCAL_ACCESS_TOKEN_KEY, data.data.accessToken)
+      }
+      window.location.href = "/"
     } catch (fetchError) {
       setError(fetchError.message || "Network error during login")
     } finally {
@@ -57,8 +98,6 @@ function Loginpage({ onCreateAccount }) {
     return () => window.clearTimeout(timer)
   }, [])
 
-  const { signIn } = useSignIn()
-
   const handleCreateAccount = () => {
     if (onCreateAccount) {
       onCreateAccount()
@@ -66,19 +105,6 @@ function Loginpage({ onCreateAccount }) {
     }
 
     navigate("/signup")
-  }
-
-  const signInWith = async (strategy) => {
-    try {
-      setError("")
-      await signIn?.authenticateWithRedirect({
-        strategy,
-        redirectUrl: '/sso-callback',
-        redirectUrlComplete: '/dashboard',
-      })
-    } catch (err) {
-      setError(err.message || "Unable to continue with social sign-in")
-    }
   }
 
   if (!pageReady) {
@@ -97,7 +123,7 @@ function Loginpage({ onCreateAccount }) {
             <div>
               <p className="text-sm uppercase tracking-[0.3em] text-green-600 font-semibold">Welcome Back</p>
               <h1 className="mt-4 text-4xl font-bold text-slate-950">Sign in to your account</h1>
-              <p className="mt-3 text-slate-600">Use your username and password to access your dashboard, or continue with one of your social accounts.</p>
+              <p className="mt-3 text-slate-600">Use your email and password to access your dashboard, or continue with one of your social accounts.</p>
             </div>
             {error ? (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -105,17 +131,7 @@ function Loginpage({ onCreateAccount }) {
               </div>
             ) : null}
             <div className="space-y-3">
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              onClick={() => signInWith('oauth_google')}>
-                <span className="h-5 w-5 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-blue-500"></span>
-                Continue with Google
-              </button>
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-[#1877F2] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#166fe5]" onClick={() => signInWith('oauth_facebook')}>
-                Continue with Facebook
-              </button>
-              <button className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800" onClick={() => signInWith('oauth_x')}>
-                Continue with Twitter
-              </button>
+              <SocialButtons />
             </div>
             <div className="flex items-center gap-3 text-sm text-slate-500">
               <span className="h-px flex-1 bg-slate-300"></span>
@@ -126,12 +142,12 @@ function Loginpage({ onCreateAccount }) {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-4">
-              <label className="block text-sm font-medium text-slate-700">Email or Username</label>
+              <label className="block text-sm font-medium text-slate-700">Email</label>
               <input
-                type="text"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="jane.doe or jane@example.com"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="jane@example.com"
                 className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                 required
               />
@@ -174,7 +190,7 @@ function Loginpage({ onCreateAccount }) {
             </button>
 
             <p className="text-center text-sm text-slate-500">
-              Don&apos;t have an account?{' '}
+              Don't have an account?{' '}
               <button
                 type="button"
                 onClick={handleCreateAccount}

@@ -86,16 +86,32 @@ function UserProfileIcon({ className = "w-8 h-8" }) {
 function Nav() {
   const [isNavVisible, setIsNavVisible] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const hideTimerRef = useRef(null)
+  const profileTimerRef = useRef(null)
   const navigate = useNavigate()
-  const { isLoaded, isSignedIn } = useAuth()
+  const { isLoaded, isSignedIn, signOut } = useAuth()
   const { user, isLoaded: userLoaded } = useUser()
+  const LOCAL_ACCESS_TOKEN_KEY = "drExcelAccessToken"
+
   const handleProtectedAction = (event) => {
     if (isLoaded && !isSignedIn) {
       event.preventDefault()
       navigate('/login')
     }
   }
+
+  const handleSignOut = async () => {
+    // Clear local token
+    localStorage.removeItem(LOCAL_ACCESS_TOKEN_KEY)
+    // Sign out from Clerk if signed in
+    if (isSignedIn) {
+      await signOut()
+    }
+    // Redirect to home
+    window.location.href = '/'
+  }
+
   const greetingText = !userLoaded || !user
     ? "Hello, New User 👋"
     : `Hello, ${user.firstName || user.fullName?.split(" ")[0] || user.username || "there"}`
@@ -112,6 +128,20 @@ function Nav() {
       window.clearTimeout(hideTimerRef.current)
     }
     hideTimerRef.current = window.setTimeout(() => setIsNavVisible(false), 220)
+  }
+
+  const showProfile = () => {
+    if (profileTimerRef.current) {
+      window.clearTimeout(profileTimerRef.current)
+    }
+    setIsProfileOpen(true)
+  }
+
+  const scheduleHideProfile = () => {
+    if (profileTimerRef.current) {
+      window.clearTimeout(profileTimerRef.current)
+    }
+    profileTimerRef.current = window.setTimeout(() => setIsProfileOpen(false), 220)
   }
 
   useEffect(() => {
@@ -139,6 +169,9 @@ function Nav() {
       window.removeEventListener('scroll', onScroll)
       if (hideTimerRef.current) {
         window.clearTimeout(hideTimerRef.current)
+      }
+      if (profileTimerRef.current) {
+        window.clearTimeout(profileTimerRef.current)
       }
     }
   }, [])
@@ -174,14 +207,41 @@ function Nav() {
             <span>{greetingText}</span>
           </div>
 
-          <button
-            type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full overflow-hidden ring-2 ring-white/20 bg-slate-700 text-slate-300 focus:outline-none"
-            aria-label="Profile"
-            onClick={handleProtectedAction}
-          >
-            <UserProfileIcon className="h-6 w-6" />
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              className="flex h-10 w-10 items-center justify-center rounded-full overflow-hidden ring-2 ring-white/20 bg-slate-700 text-slate-300 focus:outline-none"
+              aria-label="Profile"
+              onClick={handleProtectedAction}
+              onMouseEnter={showProfile}
+              onMouseLeave={scheduleHideProfile}
+            >
+              <UserProfileIcon className="h-6 w-6" />
+            </button>
+
+            {isProfileOpen && (isSignedIn || localStorage.getItem(LOCAL_ACCESS_TOKEN_KEY)) && (
+              <div
+                className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-white/10 bg-slate-900/95 p-2 shadow-2xl"
+                onMouseEnter={showProfile}
+                onMouseLeave={scheduleHideProfile}
+              >
+                <Link
+                  to="/settings"
+                  className="block rounded-lg px-3 py-2 text-sm text-white transition hover:bg-white/10"
+                  onClick={() => setIsProfileOpen(false)}
+                >
+                  Account Settings
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full text-left rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
@@ -542,14 +602,7 @@ function Benefits() {
 }
 
 function Projects() {
-  const navigate = useNavigate()
-  const { isLoaded, isSignedIn } = useAuth()
-  const handleProtectedAction = (event) => {
-    if (isLoaded && !isSignedIn) {
-      event.preventDefault()
-      navigate('/login')
-    }
-  }
+  const [active, setActive] = useState(0)
 
   const projects = [
     {
@@ -590,8 +643,6 @@ function Projects() {
     },
   ]
 
-  const [active, setActive] = useState(0)
-
   return (
     <section id="projects" className="py-24 bg-slate-50 text-slate-900">
       <div className="max-w-6xl mx-auto px-6">
@@ -630,11 +681,7 @@ function Projects() {
               <RevealCard key={project.title} delay={i * 60}>
                 <button
                   type="button"
-                  onClick={(event) => {
-                    if (handleProtectedAction(event)) {
-                      setActive(i)
-                    }
-                  }}
+                  onClick={() => setActive(i)}
                   className={`w-full rounded-2xl border p-4 text-left transition ${
                     active === i
                       ? 'border-green-300 bg-white shadow-md shadow-green-100'
@@ -761,7 +808,6 @@ function Contact() {
 
                 <button
                   type="submit"
-                  onClick={handleProtectedAction}
                   className="rounded-full bg-green-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-200 transition hover:-translate-y-0.5 hover:bg-green-500"
                 >
                   Send Message
