@@ -5,11 +5,13 @@ services:
     build: ./backend
     container_name: backend
     ports:
-      - "3000:3000"
+      - "80:80"
     environment:
-      MONGODB_URI: mongodb://admin:password@mongo:27017/portfolio?authSource=admin
+      MONGODB_URI: mongodb://admin:password@mongo:27017/request-db?authSource=admin
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: ""
+      NODE_ENV: development
+      PORT: 80
     depends_on:
       mongo:
         condition: service_healthy
