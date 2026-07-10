@@ -21,6 +21,7 @@ A modern full-stack web application for request management with dual authenticat
 - [Deployment](#deployment)
 - [Security](#security)
 - [Performance](#performance)
+- [Demo](#demo)
 - [License](#license)
 
 ## Overview
@@ -249,7 +250,34 @@ http://localhost:5000/api
 ### CI/CD Pipeline
 
 The application uses GitHub Actions for continuous deployment to AWS ECS:
+# CI/CD Deployment Flow
 
+```text
+Developer pushes code
+          |
+          v
+GitHub Actions starts
+          |
+          v
+Checkout code
+          |
+          v
+Build Docker images
+(frontend + backend)
+          |
+          v
+Push images to Amazon ECR
+          |
+          v
+Tell ECS:
+"Pull the newest images"
+          |
+          v
+ECS replaces running containers
+          |
+          v
+Application updated
+```
 1. **Build Stage**: Docker images are built for both frontend and backend
 2. **Push Stage**: Images are pushed to Amazon ECR
 3. **Deploy Stage**: ECS services are updated with new images
@@ -287,6 +315,18 @@ terraform apply
 - **Cache Invalidation** - Automatic invalidation on write operations
 - **Connection Pooling** - Efficient database connections
 - **Compression** - Response compression for API endpoints
+
+## Demo
+Here is a demo of how the application looks like
+<div align="center">
+  <img
+    src="public/demo-video.gif"
+    alt="Dr.Excel Demo"
+    width="100%"
+  />
+</div>
+
+
 
 ## License
 
