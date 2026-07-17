@@ -38,8 +38,8 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb"{
     description = "Allow ECS tasks to receive traffic from ALB"
 
     ip_protocol = "tcp"
-    from_port = 3000
-    to_port = 3000
+    from_port = var.container_port
+    to_port = var.container_port
     referenced_security_group_id =  aws_security_group.alb.id
 }
 
