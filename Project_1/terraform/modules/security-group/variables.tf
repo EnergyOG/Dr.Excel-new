@@ -1,5 +1,5 @@
 variable "vpc_id" {
-  type = number
+  type = string
 }
 
 variable "alb_ports" {
