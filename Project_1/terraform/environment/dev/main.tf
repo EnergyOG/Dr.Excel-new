@@ -21,3 +21,10 @@ module "vpc" {
   }
 }
 
+module "security_groups" {
+  source = "../../modules/security-groups"
+
+  vpc_id = module.vpc.vpc_id
+  container_port = var.container_port
+  alb_ports = var.alb_ports
+}
