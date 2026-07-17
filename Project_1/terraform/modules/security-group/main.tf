@@ -5,23 +5,14 @@ resource "aws_security_group" "alb" {
   vpc_id = var.vpc_id
 }
 
-#allows http traffic from the internet to ALB on port 80
-resource "aws_vpc_security_group_ingress_rule" "alb_http" {
+resource "aws_vpc_security_group_ingress_rule" "alb_protocol" {
+  for_each = var.alb_ports
+
   security_group_id = aws_security_group.alb.id
 
   ip_protocol = "tcp"
-  from_port   = 80
-  to_port     = 80
-  cidr_ipv4   = "0.0.0.0/0"
-}
-
-#allows http traffic from the internet to ALB on port 443
-resource "aws_vpc_security_group_ingress_rule" "alb_https" {
-  security_group_id = aws_security_group.alb.id
-
-  ip_protocol = "tcp"
-  from_port   = 443
-  to_port     = 443
+  from_port   = each.value.from_port
+  to_port     = each.value.to_port
   cidr_ipv4   = "0.0.0.0/0"
 }
 
