@@ -9,6 +9,7 @@ resource "aws_vpc_security_group_ingress_rule" "alb_protocol" {
   for_each = var.alb_ports
 
   security_group_id = aws_security_group.alb.id
+  description = "Allow HTTP/HTTPS traffic from the internet"
 
   ip_protocol = "tcp"
   from_port   = each.value.from_port
@@ -27,12 +28,14 @@ resource "aws_vpc_security_group_egress_rule" "alb_outbound" {
 #ECS security group
 resource "aws_security_group" "ecs" {
     name = "ecs-security-group"
-    vpc_id = var.vpc.id
+    description = "Security group for ECS tasks"
+    vpc_id = var.vpc_id
 }
 
 #allow only alb to ecs container traffic
 resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb"{
     security_group_id = aws_security_group.ecs.id
+    description = "Allow ECS tasks to receive traffic from ALB"
 
     ip_protocol = "tcp"
     from_port = 3000
@@ -42,7 +45,8 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb"{
 
 #allow ecs task to access the internet
 resource "aws_vpc_security_group_egress_rule" "ecs_outbound" {
-  security_group_id = aws_security_group.alb.id
+  security_group_id = aws_security_group.ecs.id
+  description = "Allow ECS tasks to access the internet"
 
   ip_protocol = "-1"
   cidr_ipv4 = "0.0.0.0/0"
