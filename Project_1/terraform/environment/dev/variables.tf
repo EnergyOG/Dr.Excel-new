@@ -21,3 +21,23 @@ variable "public_subnets" {
 variable "private_subnets" {
   type = list(string)
 }
+
+variable "enable_dns_support" {
+  type = bool
+}
+
+variable "enable_dns_hostnames" {
+  type = bool
+}
+
+variable "enable_nat_gateway" {
+  type = bool
+}
+
+variable "one_nat_gateway_per_az" {
+  type = bool
+}
+
+variable "tags" {
+  type = map(string)
+}
