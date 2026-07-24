@@ -1,6 +1,6 @@
 #ALB security group
 resource "aws_security_group" "alb" {
-  name   = "alb-security-group"
+  name   = "${var.project_name}-alb-sg"
   description = "Security group for Application Load Balancer traffic"
   vpc_id = var.vpc_id
 }
@@ -27,7 +27,7 @@ resource "aws_vpc_security_group_egress_rule" "alb_outbound" {
 
 #ECS security group
 resource "aws_security_group" "ecs" {
-    name = "ecs-security-group"
+    name = "${var.project_name}-ecs-sg"
     description = "Security group for ECS tasks"
     vpc_id = var.vpc_id
 }

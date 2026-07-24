@@ -12,5 +12,9 @@ variable "alb_ports" {
 
 variable "container_port" {
   description = "Port allows ECS tasks to receive ALB traffic"
-  type = number
+  type        = number
+}
+
+variable "project_name" {
+  type = string
 }
